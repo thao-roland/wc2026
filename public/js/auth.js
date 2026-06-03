@@ -50,7 +50,7 @@ function bind(formId, handler, doneLabel) {
     btn.disabled = true; btn.textContent = '…';
     try {
       await handler(data.username, data.password);
-      location.href = '/dashboard';
+      location.href = '/dashboard.html';
     } catch (ex) {
       err.textContent = ex.message || 'Something went wrong';
       err.hidden = false;

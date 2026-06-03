@@ -5,7 +5,8 @@
   const path = location.pathname;
 
   function navLink(href, label) {
-    return `<a href="${href}" class="${path.startsWith(href) ? 'active' : ''}">${label}</a>`;
+    const active = path === href || path === href.replace('.html', '');
+    return `<a href="${href}" class="${active ? 'active' : ''}">${label}</a>`;
   }
 
   slot.innerHTML = `
@@ -15,16 +16,16 @@
           <span class="b1">⚽</span><span class="b2">WC26</span><span class="b3">.bets</span>
         </a>
         <nav class="site">
-          ${user ? navLink('/dashboard', 'Matches') : ''}
-          ${user ? navLink('/groups', 'Groups') : ''}
-          ${user ? navLink('/admin', 'Admin') : ''}
+          ${user ? navLink('/dashboard.html', 'Matches') : ''}
+          ${user ? navLink('/groups.html', 'Groups') : ''}
+          ${user ? navLink('/admin.html', 'Admin') : ''}
         </nav>
         <div class="spacer"></div>
         ${user
           ? `<span class="user">@${user.username}</span>
              <button id="logout" class="linkbtn">Logout</button>`
-          : `<a class="linkbtn" href="/login">Login</a>
-             <a class="btn btn-primary" href="/register" style="margin-left:10px">Sign up</a>`}
+          : `<a class="linkbtn" href="/login.html">Login</a>
+             <a class="btn btn-primary" href="/register.html" style="margin-left:10px">Sign up</a>`}
       </div>
     </header>
   `;
@@ -33,7 +34,7 @@
   if (logout) {
     logout.addEventListener('click', async () => {
       await WC.sb.auth.signOut().catch(() => {});
-      location.href = '/login';
+      location.href = '/login.html';
     });
   }
 })();

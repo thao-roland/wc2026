@@ -31,7 +31,7 @@
     }
   }
 
-  async function requireUser(redirectTo = '/login') {
+  async function requireUser(redirectTo = '/login.html') {
     const u = await currentUser();
     if (!u) { location.href = redirectTo; return null; }
     return u;

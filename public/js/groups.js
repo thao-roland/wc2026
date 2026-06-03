@@ -37,7 +37,7 @@
       const g = row.groups;
       const right = row.status === 'pending'
         ? WC.el('span', { class: 'chip chip-slate' }, 'Pending approval')
-        : WC.el('a', { class: 'btn btn-primary', href: `/group?id=${g.id}` }, 'Open');
+        : WC.el('a', { class: 'btn btn-primary', href: `/group.html?id=${g.id}` }, 'Open');
       list.append(WC.el('div', { class: 'card flex-between' },
         WC.el('div', {},
           WC.el('h3', { style: 'margin:0 0 4px;font-size:17px;font-weight:800' }, g.name),
