@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: radial-gradient(1200px 800px at 50% -10%, #102050 0%, #04060c 60%);
+  color: #e6eefc;
+  min-height: 100vh;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 font-semibold transition
+           border border-transparent;
+  }
+  .btn-primary {
+    @apply btn bg-neon-green text-pitch-950 hover:shadow-glow;
+  }
+  .btn-gold {
+    @apply btn bg-neon-gold text-pitch-950 hover:shadow-gold;
+  }
+  .btn-ghost {
+    @apply btn border-pitch-600 bg-pitch-800/60 text-white hover:bg-pitch-700;
+  }
+  .card {
+    @apply rounded-xl border border-pitch-700 bg-pitch-900/70 backdrop-blur p-5;
+  }
+  .input {
+    @apply w-full rounded-md bg-pitch-800 border border-pitch-700 px-3 py-2
+           text-white placeholder:text-slate-500 focus:border-neon-green focus:outline-none;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+  }
+  .chip-green { @apply chip bg-neon-green/15 text-neon-green; }
+  .chip-gold  { @apply chip bg-neon-gold/15 text-neon-gold; }
+  .chip-slate { @apply chip bg-slate-500/15 text-slate-300; }
+  .table-row { @apply border-b border-pitch-700/70; }
+}
