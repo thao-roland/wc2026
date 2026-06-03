@@ -11,10 +11,10 @@
   <main class="container">
     <div class="card auth-card fade-in">
       <h1>Join the group</h1>
-      <p class="sub">Pick a username and password.</p>
+      <p class="sub">Email and password.</p>
       <form id="register-form" class="form-stack">
-        <input class="input" name="username" placeholder="username" autofocus required minlength="3" maxlength="32" />
-        <input class="input" name="password" type="password" placeholder="password" required minlength="6" />
+        <input class="input" name="email" type="email" placeholder="email" autofocus required autocomplete="email" />
+        <input class="input" name="password" type="password" placeholder="password" required minlength="6" autocomplete="new-password" />
         <p class="alert" id="err" hidden></p>
         <button class="btn btn-primary" type="submit" style="width:100%">Create account</button>
       </form>

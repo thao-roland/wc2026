@@ -1,4 +1,4 @@
-// Initializes the Supabase client and exposes a few helpers on window.WC.
+// Initializes the Supabase client and exposes helpers on window.WC.
 // Must be loaded after config.js and the supabase-js UMD bundle.
 (function () {
   if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
@@ -10,7 +10,6 @@
   });
   window.sb = sb;
 
-  // Cached profile lookup for the current user.
   let _profile = null;
   async function loadProfile(uid) {
     if (_profile && _profile.id === uid) return _profile;
@@ -23,22 +22,18 @@
   async function currentUser() {
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return null;
+    let displayName = user.email ? user.email.split('@')[0] : 'user';
     try {
       const profile = await loadProfile(user.id);
-      return { id: user.id, username: profile.username, email: user.email };
-    } catch {
-      return { id: user.id, username: user.email?.split('@')[0] || 'unknown', email: user.email };
-    }
+      displayName = profile.username || displayName;
+    } catch { /* profile row may not exist yet */ }
+    return { id: user.id, email: user.email, username: displayName };
   }
 
   async function requireUser(redirectTo = '/login.html') {
     const u = await currentUser();
     if (!u) { location.href = redirectTo; return null; }
     return u;
-  }
-
-  function emailFor(username) {
-    return `${username.trim().toLowerCase()}@${window.WC26_EMAIL_DOMAIN}`;
   }
 
   function el(tag, attrs, ...children) {
@@ -67,5 +62,5 @@
     return new URLSearchParams(location.search).get(name);
   }
 
-  window.WC = { sb, currentUser, requireUser, emailFor, el, fmtDate, qs };
+  window.WC = { sb, currentUser, requireUser, el, fmtDate, qs };
 })();

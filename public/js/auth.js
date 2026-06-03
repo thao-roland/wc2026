@@ -1,39 +1,20 @@
-// Maps the friendly username form to Supabase email/password auth.
-
-function usernameValid(u) {
-  return /^[a-z0-9_-]{3,32}$/.test(u);
-}
-
-async function doLogin(username, password) {
-  const email = WC.emailFor(username);
-  const { error } = await WC.sb.auth.signInWithPassword({ email, password });
+async function doLogin(email, password) {
+  const { error } = await WC.sb.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error) throw error;
 }
 
-async function doRegister(username, password) {
-  const u = username.trim().toLowerCase();
-  if (!usernameValid(u)) throw new Error('Username: 3-32 chars, a-z 0-9 _ -');
+async function doRegister(email, password) {
+  const e = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Error('Invalid email');
   if (password.length < 6) throw new Error('Password ≥ 6 chars');
 
-  const email = WC.emailFor(u);
-  const { data, error } = await WC.sb.auth.signUp({
-    email,
-    password,
-    options: { data: { username: u } },
-  });
+  const { data, error } = await WC.sb.auth.signUp({ email: e, password });
   if (error) {
-    // Friendlier message for "user already registered"
-    if (/registered|exists/i.test(error.message)) {
-      throw new Error('Username taken');
-    }
+    if (/registered|exists/i.test(error.message)) throw new Error('Email already registered');
     throw error;
   }
-
-  // If email confirmation is OFF in Supabase, signUp gives us a session.
-  // If it's ON, sign the user in directly so they can keep using the app
-  // (they're using a fake-domain email anyway).
   if (!data.session) {
-    const { error: signInErr } = await WC.sb.auth.signInWithPassword({ email, password });
+    const { error: signInErr } = await WC.sb.auth.signInWithPassword({ email: e, password });
     if (signInErr) throw signInErr;
   }
 }
@@ -49,7 +30,7 @@ function bind(formId, handler, doneLabel) {
     const btn = form.querySelector('button[type=submit]');
     btn.disabled = true; btn.textContent = '…';
     try {
-      await handler(data.username, data.password);
+      await handler(data.email, data.password);
       location.href = '/dashboard.html';
     } catch (ex) {
       err.textContent = ex.message || 'Something went wrong';
@@ -60,5 +41,5 @@ function bind(formId, handler, doneLabel) {
   });
 }
 
-bind('login-form',    (u, p) => doLogin(u, p),    'Sign in');
-bind('register-form', (u, p) => doRegister(u, p), 'Create account');
+bind('login-form',    (e, p) => doLogin(e, p),    'Sign in');
+bind('register-form', (e, p) => doRegister(e, p), 'Create account');

@@ -13,8 +13,8 @@
       <h1>Welcome back</h1>
       <p class="sub">Sign in to your account.</p>
       <form id="login-form" class="form-stack">
-        <input class="input" name="username" placeholder="username" autofocus required minlength="3" maxlength="32" />
-        <input class="input" name="password" type="password" placeholder="password" required minlength="6" />
+        <input class="input" name="email" type="email" placeholder="email" autofocus required autocomplete="email" />
+        <input class="input" name="password" type="password" placeholder="password" required minlength="6" autocomplete="current-password" />
         <p class="alert" id="err" hidden></p>
         <button class="btn btn-primary" type="submit" style="width:100%">Sign in</button>
       </form>
