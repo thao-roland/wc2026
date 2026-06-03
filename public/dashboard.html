@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Matches — WC26.bets</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="container">
+    <div class="flex-between mb-3">
+      <h1 class="page" style="margin:0">Matches</h1>
+      <p class="muted" style="font-size:13px;margin:0">Predictions lock at kickoff.</p>
+    </div>
+    <div class="tabs" id="tabs">
+      <button data-stage="all" class="active">All</button>
+      <button data-stage="group">Group stage</button>
+      <button data-stage="knockout">Knockout</button>
+    </div>
+    <div id="matches" class="list fade-in-stagger"></div>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

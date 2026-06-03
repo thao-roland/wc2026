@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Groups — WC26.bets</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="container">
+    <h1 class="page">Your groups</h1>
+    <div class="groups-grid fade-in">
+      <div id="groups-list" class="list"></div>
+      <div>
+        <div class="card mb-3">
+          <h2 class="section">Create a group</h2>
+          <input id="new-name" class="input mb-2" placeholder="Group name" />
+          <button id="create-btn" class="btn btn-primary" style="width:100%;margin-top:8px">Create</button>
+        </div>
+        <div class="card">
+          <h2 class="section">Join a group</h2>
+          <input id="join-code" class="input mono mb-2" placeholder="INVITE CODE" />
+          <button id="join-btn" class="btn btn-gold" style="width:100%;margin-top:8px">Request to join</button>
+        </div>
+        <p id="msg" class="success mt-2" hidden></p>
+        <p id="err" class="alert mt-2" hidden></p>
+      </div>
+    </div>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/groups.js"></script>
+</body>
+</html>

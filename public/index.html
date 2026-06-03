@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WC26.bets — Friends Only</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="container">
+    <section class="hero fade-in">
+      <div>
+        <h1>
+          Predict the <span class="g">World Cup</span>.<br>
+          Crush your <span class="y">friends</span>.
+        </h1>
+        <p>
+          A private game for the 2026 FIFA World Cup. Call the scores, earn
+          points, rule the leaderboard. No money. Just pride.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="/register">Create account</a>
+          <a class="btn btn-ghost" href="/login">I've got one</a>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="section">Scoring</h2>
+        <div class="score-grid">
+          <div class="row"><span>Exact score</span><span class="chip chip-green">7 pts</span></div>
+          <div class="row"><span>Right winner + one team's score</span><span class="chip chip-green">4 pts</span></div>
+          <div class="row"><span>Right winner</span><span class="chip chip-gold">2 pts</span></div>
+          <div class="row"><span>Called the draw</span><span class="chip chip-gold">2 pts</span></div>
+          <div class="row"><span>One team's score, wrong winner</span><span class="chip chip-slate">1 pt</span></div>
+          <div class="row"><span>Miss</span><span class="chip chip-slate">0 pts</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site">
+    <div class="container">No real money. Just bragging rights.</div>
+  </footer>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+    // If already logged in, jump to dashboard.
+    WC.api('/api/me').then(({ user }) => { if (user) location.href = '/dashboard'; });
+  </script>
+</body>
+</html>

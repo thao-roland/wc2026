@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS predictions (
   UNIQUE (user_id, match_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_matches_date   ON matches(match_date);
-CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status);
+CREATE INDEX IF NOT EXISTS idx_matches_date     ON matches(match_date);
+CREATE INDEX IF NOT EXISTS idx_matches_status   ON matches(status);
 CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id);
 CREATE INDEX IF NOT EXISTS idx_predictions_user  ON predictions(user_id);

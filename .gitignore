@@ -8,4 +8,6 @@ tsconfig.tsbuildinfo
 !.env.example
 data/*.db
 data/*.db-journal
+data/*.db-shm
+data/*.db-wal
 .DS_Store

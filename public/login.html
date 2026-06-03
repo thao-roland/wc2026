@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login — WC26.bets</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="container">
+    <div class="card auth-card fade-in">
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in to your account.</p>
+      <form id="login-form" class="form-stack">
+        <input class="input" name="username" placeholder="username" autofocus required minlength="3" maxlength="32" />
+        <input class="input" name="password" type="password" placeholder="password" required minlength="6" />
+        <p class="alert" id="err" hidden></p>
+        <button class="btn btn-primary" type="submit" style="width:100%">Sign in</button>
+      </form>
+      <p class="muted center" style="margin-top:14px;font-size:14px">
+        No account? <a href="/register" style="color:var(--neon)">Sign up</a>
+      </p>
+    </div>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/auth.js"></script>
+</body>
+</html>
