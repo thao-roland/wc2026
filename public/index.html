@@ -40,11 +40,13 @@
   <footer class="site">
     <div class="container">No real money. Just bragging rights.</div>
   </footer>
-  <script src="/js/api.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabase-client.js"></script>
   <script src="/js/header.js"></script>
   <script>
-    // If already logged in, jump to dashboard.
-    WC.api('/api/me').then(({ user }) => { if (user) location.href = '/dashboard'; });
+    WC.currentUser().then((u) => { if (u) location.href = '/dashboard'; });
   </script>
 </body>
 </html>

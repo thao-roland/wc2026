@@ -20,6 +20,20 @@
     return WC.el('span', { class: `chip ${cls}`, style: 'margin-top:4px' }, `+${pts} pts`);
   }
 
+  async function fetchData() {
+    let q = WC.sb
+      .from('matches')
+      .select('*, predictions(id, pred_home, pred_away, points_earned)')
+      .eq('predictions.user_id', user.id)
+      .order('match_date', { ascending: true })
+      .order('id', { ascending: true });
+    if (currentStage === 'group')    q = q.eq('stage', 'Group Stage');
+    if (currentStage === 'knockout') q = q.neq('stage', 'Group Stage');
+    const { data, error } = await q;
+    if (error) throw error;
+    return data.map((m) => ({ ...m, prediction: (m.predictions || [])[0] || null }));
+  }
+
   function renderMatch(m) {
     const kickoff = new Date(m.match_date).getTime();
     const locked = m.status !== 'upcoming' || Date.now() >= kickoff;
@@ -66,22 +80,22 @@
       const btn = WC.el('button', { class: 'btn btn-primary' }, m.prediction ? 'Update' : 'Predict');
       btn.addEventListener('click', async () => {
         if (h.value === '' || a.value === '') return;
-        btn.disabled = true;
-        btn.textContent = '…';
+        btn.disabled = true; btn.textContent = '…';
         try {
-          await WC.api('/api/predictions', {
-            method: 'POST',
-            body: {
+          const { error } = await WC.sb
+            .from('predictions')
+            .upsert({
+              user_id: user.id,
               match_id: m.id,
               pred_home: Number(h.value),
               pred_away: Number(a.value),
-            },
-          });
+            }, { onConflict: 'user_id,match_id' });
+          if (error) throw error;
           status.textContent = 'Saved';
           status.style.color = 'var(--neon)';
           load();
         } catch (ex) {
-          status.textContent = ex.message;
+          status.textContent = ex.message || 'Failed';
           status.style.color = 'var(--danger)';
           btn.disabled = false;
           btn.textContent = m.prediction ? 'Update' : 'Predict';
@@ -98,14 +112,17 @@
 
   async function load() {
     list.innerHTML = '<p class="muted">Loading…</p>';
-    const qs = currentStage === 'all' ? '' : `?stage=${currentStage}`;
-    const { matches } = await WC.api('/api/matches' + qs);
-    list.innerHTML = '';
-    if (matches.length === 0) {
-      list.innerHTML = '<p class="muted">No matches found.</p>';
-      return;
+    try {
+      const matches = await fetchData();
+      list.innerHTML = '';
+      if (matches.length === 0) {
+        list.innerHTML = '<p class="muted">No matches found.</p>';
+        return;
+      }
+      for (const m of matches) list.append(renderMatch(m));
+    } catch (ex) {
+      list.innerHTML = `<p class="alert">${ex.message || 'Failed to load matches'}</p>`;
     }
-    for (const m of matches) list.append(renderMatch(m));
   }
 
   load();

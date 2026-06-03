@@ -9,21 +9,32 @@
     return;
   }
 
+  async function fetchAll() {
+    const groupP = WC.sb
+      .from('groups').select('id, name, invite_code, created_by').eq('id', gid).single();
+    const membersP = WC.sb
+      .from('group_members')
+      .select('status, joined_at, user_id, profiles!inner(id, username)')
+      .eq('group_id', gid)
+      .order('status', { ascending: true })
+      .order('joined_at', { ascending: true });
+    const lbP = WC.sb.rpc('group_leaderboard', { p_group_id: gid });
+    const [g, m, l] = await Promise.all([groupP, membersP, lbP]);
+    if (g.error) throw g.error;
+    if (m.error) throw m.error;
+    if (l.error) throw l.error;
+    return { group: g.data, members: m.data, leaderboard: l.data };
+  }
+
   async function load() {
-    let mData, lData;
-    try {
-      [mData, lData] = await Promise.all([
-        WC.api(`/api/groups/${gid}/members`),
-        WC.api(`/api/groups/${gid}/leaderboard`),
-      ]);
-    } catch (ex) {
-      root.innerHTML = `<p class="alert">${ex.message}</p>`;
-      return;
-    }
-    const { group, members, is_owner } = mData;
-    const { leaderboard, me } = lData;
-    const active = members.filter((m) => m.status === 'active');
-    const pending = members.filter((m) => m.status === 'pending');
+    let res;
+    try { res = await fetchAll(); }
+    catch (ex) { root.innerHTML = `<p class="alert">${ex.message}</p>`; return; }
+
+    const { group, members, leaderboard } = res;
+    const is_owner = group.created_by === user.id;
+    const active = members.filter((x) => x.status === 'active');
+    const pending = members.filter((x) => x.status === 'pending');
 
     root.innerHTML = '';
 
@@ -51,10 +62,10 @@
     const tbody = WC.el('tbody');
     leaderboard.forEach((r, i) => {
       const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
-      const tr = WC.el('tr', { class: r.user_id === me ? 'me' : '' });
+      const tr = WC.el('tr', { class: r.user_id === user.id ? 'me' : '' });
       tr.innerHTML = `
         <td style="font-weight:800">${rank}</td>
-        <td style="font-weight:700">${r.username}${r.user_id === me ? ' <span class="chip chip-green">you</span>' : ''}</td>
+        <td style="font-weight:700">${r.username}${r.user_id === user.id ? ' <span class="chip chip-green">you</span>' : ''}</td>
         <td class="pts">${r.total_points}</td>
         <td class="num">${r.exact_scores}</td>
         <td class="num">${r.correct_winners}</td>
@@ -74,10 +85,10 @@
       for (const p of pending) {
         const approve = WC.el('button', { class: 'btn btn-primary' }, 'Approve');
         const reject = WC.el('button', { class: 'btn btn-ghost' }, 'Reject');
-        approve.addEventListener('click', () => decide(p.id, 'approve'));
-        reject.addEventListener('click', () => decide(p.id, 'reject'));
+        approve.addEventListener('click', () => decide(p.user_id, 'approve'));
+        reject.addEventListener('click', () => decide(p.user_id, 'reject'));
         ul.append(WC.el('div', { class: 'flex-between' },
-          WC.el('span', {}, p.username),
+          WC.el('span', {}, p.profiles.username),
           WC.el('div', { class: 'row-flex' }, approve, reject),
         ));
       }
@@ -89,20 +100,33 @@
     const memSection = WC.el('section', { class: 'card fade-in' },
       WC.el('h2', { class: 'section' }, 'Members'),
     );
-    const grid = WC.el('div', { class: 'list', style: 'grid-template-columns: repeat(auto-fill,minmax(220px,1fr))' });
+    const grid = WC.el('div', { class: 'list' });
     grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = 'repeat(auto-fill,minmax(220px,1fr))';
     for (const m of active) {
       grid.append(WC.el('div', { class: 'flex-between' },
-        WC.el('span', {}, m.username),
-        m.id === group.created_by ? WC.el('span', { class: 'chip chip-gold' }, 'Owner') : null,
+        WC.el('span', {}, m.profiles.username),
+        m.user_id === group.created_by ? WC.el('span', { class: 'chip chip-gold' }, 'Owner') : null,
       ));
     }
     memSection.append(grid);
     root.append(memSection);
   }
 
-  async function decide(user_id, action) {
-    await WC.api(`/api/groups/${gid}/members`, { method: 'POST', body: { user_id, action } });
+  async function decide(uid, action) {
+    if (action === 'approve') {
+      const { error } = await WC.sb
+        .from('group_members')
+        .update({ status: 'active' })
+        .eq('group_id', gid).eq('user_id', uid).eq('status', 'pending');
+      if (error) return alert(error.message);
+    } else {
+      const { error } = await WC.sb
+        .from('group_members')
+        .delete()
+        .eq('group_id', gid).eq('user_id', uid).eq('status', 'pending');
+      if (error) return alert(error.message);
+    }
     load();
   }
 

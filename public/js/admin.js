@@ -3,19 +3,26 @@
   if (!user) return;
 
   const root = document.getElementById('root');
-  let allMatches = [];
 
-  try {
-    const { matches } = await WC.api('/api/admin/matches');
-    allMatches = matches;
-  } catch (ex) {
+  // Gate: admin = user has created at least one group.
+  const { data: isAdmin, error: adminErr } = await WC.sb.rpc('is_admin');
+  if (adminErr) {
+    root.innerHTML = `<p class="alert">${adminErr.message}</p>`;
+    return;
+  }
+  if (!isAdmin) {
     root.innerHTML = `
       <div class="card" style="max-width:520px">
         <h1 class="page" style="margin:0 0 6px">Admin</h1>
-        <p class="muted">${ex.status === 403
-          ? "You need to create a group first to access the admin panel."
-          : ex.message}</p>
+        <p class="muted">You need to create a group first to access the admin panel.</p>
       </div>`;
+    return;
+  }
+
+  const { data: allMatches, error } = await WC.sb
+    .from('matches').select('*').order('match_date').order('id');
+  if (error) {
+    root.innerHTML = `<p class="alert">${error.message}</p>`;
     return;
   }
 
@@ -34,14 +41,12 @@
   function render() {
     const t = filter.value.trim().toLowerCase();
     list.innerHTML = '';
-    const matches = !t
-      ? allMatches
-      : allMatches.filter((m) =>
-          m.team_home.toLowerCase().includes(t) ||
-          m.team_away.toLowerCase().includes(t) ||
-          m.stage.toLowerCase().includes(t) ||
-          (m.group_name || '').toLowerCase().includes(t),
-        );
+    const matches = !t ? allMatches : allMatches.filter((m) =>
+      m.team_home.toLowerCase().includes(t) ||
+      m.team_away.toLowerCase().includes(t) ||
+      m.stage.toLowerCase().includes(t) ||
+      (m.group_name || '').toLowerCase().includes(t),
+    );
     for (const m of matches) list.append(row(m));
   }
 
@@ -64,40 +69,39 @@
 
     const save = WC.el('button', { class: 'btn btn-primary' }, 'Save');
     save.addEventListener('click', async () => {
-      save.disabled = true;
-      status.textContent = '';
+      save.disabled = true; status.textContent = '';
       try {
-        const j = await WC.api(`/api/admin/matches/${m.id}`, {
-          method: 'PATCH',
-          body: {
-            score_home: h.value === '' ? null : Number(h.value),
-            score_away: a.value === '' ? null : Number(a.value),
-            status: sel.value,
-          },
-        });
-        status.textContent = `Saved · recalculated ${j.recalculated} predictions`;
-        status.style.color = 'var(--neon)';
-        // mutate in-place
-        Object.assign(m, {
+        const patch = {
           score_home: h.value === '' ? null : Number(h.value),
           score_away: a.value === '' ? null : Number(a.value),
           status: sel.value,
-        });
+        };
+        const { error } = await WC.sb.from('matches').update(patch).eq('id', m.id);
+        if (error) throw error;
+        Object.assign(m, patch);
+        // The trg_recalc_predictions trigger has already updated points.
+        status.textContent = 'Saved · predictions recalculated';
+        status.style.color = 'var(--neon)';
       } catch (ex) {
-        status.textContent = ex.message;
+        status.textContent = ex.message || 'Failed';
         status.style.color = 'var(--danger)';
       } finally { save.disabled = false; }
     });
 
+    // Manual recalc trigger: nudge by writing the same status back to force
+    // the AFTER UPDATE trigger to fire again.
     const recalc = WC.el('button', { class: 'btn btn-ghost' }, 'Recalc');
     recalc.addEventListener('click', async () => {
-      recalc.disabled = true;
+      recalc.disabled = true; status.textContent = '';
       try {
-        const j = await WC.api(`/api/admin/matches/${m.id}?action=recalc`, { method: 'POST' });
-        status.textContent = `Recalculated ${j.recalculated} predictions`;
+        const { error } = await WC.sb.from('matches')
+          .update({ status: m.status, score_home: m.score_home, score_away: m.score_away })
+          .eq('id', m.id);
+        if (error) throw error;
+        status.textContent = 'Recalculated';
         status.style.color = 'var(--neon)';
       } catch (ex) {
-        status.textContent = ex.message;
+        status.textContent = ex.message || 'Failed';
         status.style.color = 'var(--danger)';
       } finally { recalc.disabled = false; }
     });

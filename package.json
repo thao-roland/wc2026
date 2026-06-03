@@ -1,17 +1,10 @@
 {
   "name": "wc2026-bets",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed": "node db/seed.js",
-    "test": "node --test test/scoring.test.js"
-  },
-  "dependencies": {
-    "better-sqlite3": "11.1.2",
-    "bcryptjs": "2.4.3",
-    "jsonwebtoken": "9.0.2"
+    "build:seed": "node scripts/build-seed.js"
   }
 }

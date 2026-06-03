@@ -1,7 +1,7 @@
 (async function renderHeader() {
   const slot = document.getElementById('site-header');
   if (!slot) return;
-  const { user } = await WC.api('/api/me').catch(() => ({ user: null }));
+  const user = await WC.currentUser().catch(() => null);
   const path = location.pathname;
 
   function navLink(href, label) {
@@ -32,7 +32,7 @@
   const logout = document.getElementById('logout');
   if (logout) {
     logout.addEventListener('click', async () => {
-      await WC.api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      await WC.sb.auth.signOut().catch(() => {});
       location.href = '/login';
     });
   }
