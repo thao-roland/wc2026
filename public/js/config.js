@@ -6,4 +6,4 @@ window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 // Internal: every account is stored in Supabase Auth with this fake email
 // domain so users only deal with a username. Don't change after launch
 // unless you migrate existing rows.
-window.WC26_EMAIL_DOMAIN = 'wc26.local';
+window.WC26_EMAIL_DOMAIN = 'wc26bets.com';
