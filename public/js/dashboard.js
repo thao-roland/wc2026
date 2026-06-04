@@ -34,14 +34,26 @@
     return data.map((m) => ({ ...m, prediction: (m.predictions || [])[0] || null }));
   }
 
+  function stageLabel(stage) {
+    return ({
+      'Group Stage':   'Phase de groupes',
+      'Round of 32':   '16e de finale',
+      'Round of 16':   '8e de finale',
+      'Quarterfinals': 'Quart de finale',
+      'Semifinals':    'Demi-finale',
+      'Third Place':   'Petite finale',
+      'Final':         'Finale',
+    })[stage] || stage;
+  }
+
   function renderMatch(m) {
     const kickoff = new Date(m.match_date).getTime();
     const locked = m.status !== 'upcoming' || Date.now() >= kickoff;
 
     const meta = WC.el('div', { class: 'match-meta' },
-      `${m.stage}${m.group_name ? ' · Group ' + m.group_name : ''} · ${WC.fmtDate(m.match_date)}`,
-      m.status === 'live' ? WC.el('span', { class: 'chip chip-gold' }, 'LIVE') : null,
-      m.status === 'finished' ? WC.el('span', { class: 'chip chip-green' }, 'FT') : null,
+      `${stageLabel(m.stage)}${m.group_name ? ' · Groupe ' + m.group_name : ''} · ${WC.fmtDate(m.match_date)}`,
+      m.status === 'live' ? WC.el('span', { class: 'chip chip-gold' }, 'EN DIRECT') : null,
+      m.status === 'finished' ? WC.el('span', { class: 'chip chip-green' }, 'TERMINÉ') : null,
     );
 
     const teams = WC.el('div', { class: 'match-teams' },
@@ -53,19 +65,21 @@
     const left = WC.el('div', {}, meta, teams);
     if (m.status === 'finished') {
       left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
+    } else if (m.status === 'live' && m.score_home !== null) {
+      left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
     }
 
     let right;
     if (locked) {
       if (m.prediction) {
         right = WC.el('div', { class: 'pred-locked' },
-          WC.el('p', { class: 'muted', style: 'margin:0' }, 'Your call'),
+          WC.el('p', { class: 'muted', style: 'margin:0' }, 'Ton prono'),
           WC.el('p', { class: 'you' }, `${m.prediction.pred_home} – ${m.prediction.pred_away}`),
           pointChip(m.prediction.points_earned),
         );
       } else {
         right = WC.el('p', { class: 'muted', style: 'text-align:right;font-size:12px;margin:0' },
-          'Locked — no prediction');
+          'Verrouillé — aucun prono');
       }
     } else {
       const h = WC.el('input', {
@@ -77,7 +91,7 @@
         value: m.prediction ? m.prediction.pred_away : '',
       });
       const status = WC.el('p', { class: 'muted', style: 'font-size:12px;margin:4px 0 0;text-align:right' });
-      const btn = WC.el('button', { class: 'btn btn-primary' }, m.prediction ? 'Update' : 'Predict');
+      const btn = WC.el('button', { class: 'btn btn-primary' }, m.prediction ? 'Modifier' : 'Parier');
       btn.addEventListener('click', async () => {
         if (h.value === '' || a.value === '') return;
         btn.disabled = true; btn.textContent = '…';
@@ -91,14 +105,14 @@
               pred_away: Number(a.value),
             }, { onConflict: 'user_id,match_id' });
           if (error) throw error;
-          status.textContent = 'Saved';
+          status.textContent = 'Enregistré';
           status.style.color = 'var(--neon)';
           load();
         } catch (ex) {
-          status.textContent = ex.message || 'Failed';
+          status.textContent = ex.message || 'Échec';
           status.style.color = 'var(--danger)';
           btn.disabled = false;
-          btn.textContent = m.prediction ? 'Update' : 'Predict';
+          btn.textContent = m.prediction ? 'Modifier' : 'Parier';
         }
       });
       right = WC.el('div', {},
@@ -111,23 +125,20 @@
   }
 
   async function load() {
-    list.innerHTML = '<p class="muted">Loading…</p>';
+    list.innerHTML = '<p class="muted">Chargement…</p>';
     try {
       const matches = await fetchData();
       list.innerHTML = '';
       if (matches.length === 0) {
-        list.innerHTML = '<p class="muted">No matches found.</p>';
+        list.innerHTML = '<p class="muted">Aucun match trouvé.</p>';
         return;
       }
       for (const m of matches) list.append(renderMatch(m));
     } catch (ex) {
-      list.innerHTML = `<p class="alert">${ex.message || 'Failed to load matches'}</p>`;
+      list.innerHTML = `<p class="alert">${ex.message || 'Erreur de chargement'}</p>`;
     }
   }
 
   load();
-
-  // When the background sync writes new scores, refresh the list so the
-  // user sees results / leaderboard updates without reloading the page.
   window.addEventListener('wc26:scores-synced', () => load());
 })();

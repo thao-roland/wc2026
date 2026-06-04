@@ -18,7 +18,7 @@
   joinCode.addEventListener('input', () => { joinCode.value = joinCode.value.toUpperCase(); });
 
   async function load() {
-    list.innerHTML = '<p class="muted">Loading…</p>';
+    list.innerHTML = '<p class="muted">Chargement…</p>';
     const { data, error } = await WC.sb
       .from('group_members')
       .select('status, groups!inner(id, name, invite_code, created_by)')
@@ -30,19 +30,19 @@
     }
     list.innerHTML = '';
     if (data.length === 0) {
-      list.innerHTML = '<p class="muted">You\'re not in any groups yet — create or join one.</p>';
+      list.innerHTML = '<p class="muted">Tu n\'es dans aucun groupe pour l\'instant — crée ou rejoins-en un.</p>';
       return;
     }
     for (const row of data) {
       const g = row.groups;
       const right = row.status === 'pending'
-        ? WC.el('span', { class: 'chip chip-slate' }, 'Pending approval')
-        : WC.el('a', { class: 'btn btn-primary', href: `/group.html?id=${g.id}` }, 'Open');
+        ? WC.el('span', { class: 'chip chip-slate' }, 'En attente')
+        : WC.el('a', { class: 'btn btn-primary', href: `/group.html?id=${g.id}` }, 'Ouvrir');
       list.append(WC.el('div', { class: 'card flex-between' },
         WC.el('div', {},
           WC.el('h3', { style: 'margin:0 0 4px;font-size:17px;font-weight:800' }, g.name),
           WC.el('p', { class: 'muted', style: 'margin:0;font-size:12px' },
-            'Invite: ', WC.el('span', { class: 'mono' }, g.invite_code),
+            'Code d\'invitation : ', WC.el('span', { class: 'mono' }, g.invite_code),
           ),
         ),
         right,
@@ -52,21 +52,19 @@
 
   createBtn.addEventListener('click', async () => {
     const name = newName.value.trim();
-    if (name.length < 2) return setMsg('Name must be at least 2 characters', true);
+    if (name.length < 2) return setMsg('Le nom doit faire au moins 2 caractères', true);
     createBtn.disabled = true;
     try {
-      // The DB trigger `trg_add_owner_member` automatically adds the
-      // creator as an active member, so we just insert the group.
       const { data, error } = await WC.sb
         .from('groups')
         .insert({ name, created_by: user.id })
         .select('id, name, invite_code')
         .single();
       if (error) throw error;
-      setMsg(`Created — invite code: ${data.invite_code}`);
+      setMsg(`Créé — code d'invitation : ${data.invite_code}`);
       newName.value = '';
       load();
-    } catch (ex) { setMsg(ex.message || 'Failed', true); }
+    } catch (ex) { setMsg(ex.message || 'Échec', true); }
     finally { createBtn.disabled = false; }
   });
 
@@ -79,11 +77,11 @@
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
       setMsg(row.my_status === 'active'
-        ? `You're already in "${row.group_name}".`
-        : `Requested to join "${row.group_name}". Waiting for the owner.`);
+        ? `Tu es déjà dans « ${row.group_name} ».`
+        : `Demande envoyée pour rejoindre « ${row.group_name} ». En attente du créateur.`);
       joinCode.value = '';
       load();
-    } catch (ex) { setMsg(ex.message || 'Failed', true); }
+    } catch (ex) { setMsg(ex.message || 'Échec', true); }
     finally { joinBtn.disabled = false; }
   });
 

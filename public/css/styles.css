@@ -256,6 +256,56 @@ h2.section { font-size: 18px; margin: 0 0 12px; font-weight: 800; }
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
+/* ---------- points matrix ---------- */
+.matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.matrix {
+  border-collapse: separate; border-spacing: 0;
+  font-size: 13px;
+  min-width: 100%;
+}
+table.matrix th, table.matrix td {
+  padding: 8px 6px;
+  border-bottom: 1px solid rgba(23,34,68,0.7);
+  text-align: center;
+}
+table.matrix th.sticky-col, table.matrix td.sticky-col {
+  position: sticky; left: 0;
+  background: var(--bg-1);
+  text-align: left;
+  font-weight: 700;
+  white-space: nowrap;
+  border-right: 1px solid #172244;
+  z-index: 1;
+}
+table.matrix th.match-col {
+  font-weight: 600; color: var(--muted);
+  font-size: 11px;
+  min-width: 52px;
+}
+table.matrix th.match-col .abbr { font-weight: 800; color: #fff; font-size: 12px; }
+table.matrix th.match-col .sub  { color: var(--neon); font-weight: 700; font-size: 11px; }
+table.matrix th.total-col {
+  position: sticky; right: 0;
+  background: var(--bg-1);
+  border-left: 1px solid #172244;
+  color: var(--gold);
+  font-size: 12px;
+}
+table.matrix td.total-cell {
+  position: sticky; right: 0;
+  background: var(--bg-1);
+  border-left: 1px solid #172244;
+  font-weight: 900; color: var(--neon);
+}
+table.matrix tr.me td.sticky-col,
+table.matrix tr.me td.total-cell {
+  background: rgba(0,255,133,0.10);
+}
+table.matrix tr:hover td:not(.sticky-col):not(.total-cell) {
+  background: rgba(255,255,255,0.02);
+}
+table.matrix td.pts-cell .chip { font-size: 11px; padding: 1px 7px; }
+
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--gold); }
 .center { text-align: center; }
 .row-flex { display: flex; align-items: center; gap: 10px; }

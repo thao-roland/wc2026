@@ -5,12 +5,12 @@ async function doLogin(email, password) {
 
 async function doRegister(email, password) {
   const e = email.trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Error('Invalid email');
-  if (password.length < 6) throw new Error('Password ≥ 6 chars');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Error('Email invalide');
+  if (password.length < 6) throw new Error('Mot de passe : 6 caractères minimum');
 
   const { data, error } = await WC.sb.auth.signUp({ email: e, password });
   if (error) {
-    if (/registered|exists/i.test(error.message)) throw new Error('Email already registered');
+    if (/registered|exists/i.test(error.message)) throw new Error('Cet email est déjà utilisé');
     throw error;
   }
   if (!data.session) {
@@ -33,7 +33,7 @@ function bind(formId, handler, doneLabel) {
       await handler(data.email, data.password);
       location.href = '/dashboard.html';
     } catch (ex) {
-      err.textContent = ex.message || 'Something went wrong';
+      err.textContent = ex.message || 'Une erreur s\'est produite';
       err.hidden = false;
       btn.disabled = false;
       btn.textContent = doneLabel;
@@ -41,5 +41,5 @@ function bind(formId, handler, doneLabel) {
   });
 }
 
-bind('login-form',    (e, p) => doLogin(e, p),    'Sign in');
-bind('register-form', (e, p) => doRegister(e, p), 'Create account');
+bind('login-form',    (e, p) => doLogin(e, p),    'Se connecter');
+bind('register-form', (e, p) => doRegister(e, p), 'Créer le compte');

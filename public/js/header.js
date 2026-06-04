@@ -16,15 +16,16 @@
           <span class="b1">⚽</span><span class="b2">WC26</span><span class="b3">.bets</span>
         </a>
         <nav class="site">
-          ${user ? navLink('/dashboard.html', 'Matches') : ''}
-          ${user ? navLink('/groups.html', 'Groups') : ''}
+          ${user ? navLink('/dashboard.html', 'Matchs') : ''}
+          ${user ? navLink('/groups.html', 'Groupes') : ''}
         </nav>
         <div class="spacer"></div>
         ${user
-          ? `<span class="user">@${user.username}</span>
-             <button id="logout" class="linkbtn">Logout</button>`
-          : `<a class="linkbtn" href="/login.html">Login</a>
-             <a class="btn btn-primary" href="/register.html" style="margin-left:10px">Sign up</a>`}
+          ? `<button id="sync-now" class="btn btn-ghost" style="padding:6px 10px;font-size:12px;margin-right:8px" title="Forcer le rafraîchissement des scores">⟳ Scores</button>
+             <span class="user">${user.username}</span>
+             <button id="logout" class="linkbtn">Déconnexion</button>`
+          : `<a class="linkbtn" href="/login.html">Connexion</a>
+             <a class="btn btn-primary" href="/register.html" style="margin-left:10px">S'inscrire</a>`}
       </div>
     </header>
   `;
@@ -34,6 +35,15 @@
     logout.addEventListener('click', async () => {
       await WC.sb.auth.signOut().catch(() => {});
       location.href = '/login.html';
+    });
+  }
+
+  const sync = document.getElementById('sync-now');
+  if (sync) {
+    sync.addEventListener('click', () => {
+      if (window.WC_SYNC && window.WC_SYNC.syncNowWithFeedback) {
+        WC_SYNC.syncNowWithFeedback(sync);
+      }
     });
   }
 })();
