@@ -126,4 +126,8 @@
   }
 
   load();
+
+  // When the background sync writes new scores, refresh the list so the
+  // user sees results / leaderboard updates without reloading the page.
+  window.addEventListener('wc26:scores-synced', () => load());
 })();
