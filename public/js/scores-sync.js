@@ -1,31 +1,43 @@
 // Auto-syncs match scores from TheSportsDB (free, CORS-enabled).
-// Runs on dashboard load and every 60s while the page is open.
+// Runs on dashboard / group page load and every 60s while the tab is open.
 //
-// TheSportsDB key "3" is their public testing key — fine for a private
-// friends-only app. If we ever hit rate limits, signup at thesportsdb.com
-// and replace with a real key.
+// Why a free public key: the data is publicly available and the only
+// purpose is to copy it into our DB; rate limits are generous enough
+// for a private friends app.
 
 const TSDB_KEY      = '3';
 const TSDB_LEAGUE   = 4419;     // FIFA World Cup
 const TSDB_SEASON   = '2026';
-const POLL_INTERVAL = 60_000;   // 60 seconds
+const POLL_INTERVAL = 60_000;
 
-// Team names occasionally differ between TheSportsDB and our seed. Map
-// the TheSportsDB form -> our form so the join works. Add entries here
-// if you spot mismatches in the network tab.
+// After normalize() runs (lowercase, diacritic strip, punctuation→space),
+// these aliases collapse all known variants of a team name to a single
+// canonical key. Both the DB row and the API row pass through this, so
+// "Türkiye", "Turkey", "Turkiye" all become "turkiye" and the join works.
 const ALIASES = {
-  'united states':   'usa',
-  'turkey':          'türkiye',
-  'korea republic':  'south korea',
-  'south korea':     'south korea',
-  'czech republic':  'czechia',
-  'usa':             'usa',
+  'turkey':                            'turkiye',
+  'united states':                     'usa',
+  'united states of america':          'usa',
+  'korea republic':                    'korea',
+  'south korea':                       'korea',
+  'czech republic':                    'czechia',
+  'cote d ivoire':                     'ivory coast',
+  'côte d ivoire':                     'ivory coast',
+  'dr congo':                          'congo',
+  'congo dr':                          'congo',
+  'democratic republic of the congo':  'congo',
+  'democratic republic of congo':      'congo',
+  'cabo verde':                        'cape verde',
+  'bosnia and herzegovina':            'bosnia',
+  'bosnia herzegovina':                'bosnia',
+  'curacao':                           'curacao',
+  'iran islamic republic of':          'iran',
 };
 
 function normalize(s) {
   const n = (s || '').toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
     .trim();
   return ALIASES[n] || n;
 }
@@ -38,7 +50,6 @@ function statusFromTSDB(strStatus, hasScore) {
   if (s.includes('finish') || s === 'ft' || s === 'aet' || s === 'pen' || s.includes('after')) {
     return 'finished';
   }
-  // Anything else (1st half, half time, 2nd half, ...) = live.
   return 'live';
 }
 
@@ -63,7 +74,6 @@ async function syncScoresOnce() {
     .select('id, team_home, team_away, score_home, score_away, status');
   if (error) { console.warn('[sync] db read:', error.message); return 0; }
 
-  // Pair our rows with API events by normalized (home, away).
   const byPair = new Map();
   for (const m of local) {
     byPair.set(`${normalize(m.team_home)}|${normalize(m.team_away)}`, m);
@@ -99,13 +109,11 @@ async function syncScoresOnce() {
 
 window.WC_SYNC = { syncScoresOnce };
 
-// Kick off auto-sync as soon as Supabase is ready and the page is visible.
 (function autoSync() {
   function tick() {
     if (document.visibilityState !== 'visible') return;
     syncScoresOnce().catch(() => {});
   }
-  // Wait a tick for WC to be initialized.
   setTimeout(tick, 200);
   setInterval(tick, POLL_INTERVAL);
   document.addEventListener('visibilitychange', () => {
