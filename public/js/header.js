@@ -18,7 +18,6 @@
         <nav class="site">
           ${user ? navLink('/dashboard.html', 'Matches') : ''}
           ${user ? navLink('/groups.html', 'Groups') : ''}
-          ${user ? navLink('/admin.html', 'Admin') : ''}
         </nav>
         <div class="spacer"></div>
         ${user
