@@ -13,7 +13,7 @@
     <header class="site">
       <div class="row">
         <a class="brand" href="/">
-          <span class="b1">⚽</span><span class="b2">WC26</span><span class="b3">.bets</span>
+          <span class="ball"></span>WC26<span class="b3">.bets</span>
         </a>
         <nav class="site">
           ${user ? navLink('/dashboard.html', 'Matchs') : ''}
@@ -21,11 +21,11 @@
         </nav>
         <div class="spacer"></div>
         ${user
-          ? `<button id="sync-now" class="btn btn-ghost" style="padding:6px 10px;font-size:12px;margin-right:8px" title="Forcer le rafraîchissement des scores">⟳ Scores</button>
+          ? `<button id="sync-now" class="btn btn-ghost" style="padding:6px 10px;font-size:11px;margin-right:8px" title="Forcer le rafraîchissement des scores">⟳ Scores</button>
              <span class="user">${user.username}</span>
              <button id="logout" class="linkbtn">Déconnexion</button>`
           : `<a class="linkbtn" href="/login.html">Connexion</a>
-             <a class="btn btn-primary" href="/register.html" style="margin-left:10px">S'inscrire</a>`}
+             <a class="btn btn-primary" href="/register.html" style="margin-left:12px">S'inscrire</a>`}
       </div>
     </header>
   `;
