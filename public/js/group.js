@@ -119,9 +119,9 @@
           <th class="num">#</th>
           <th>Équipe</th>
           <th class="num" title="Joués">J</th>
-          <th class="num" title="Victoires">V</th>
-          <th class="num" title="Nuls">N</th>
-          <th class="num" title="Défaites">D</th>
+          <th class="num col-wdl" title="Victoires">V</th>
+          <th class="num col-wdl" title="Nuls">N</th>
+          <th class="num col-wdl" title="Défaites">D</th>
           <th class="num" title="Différence de buts">+/–</th>
           <th class="num pts-col">Pts</th>
         </tr></thead>`;
@@ -137,9 +137,9 @@
           <td class="num pos">${pos}</td>
           <td class="team">${esc(t.team)}</td>
           <td class="num">${t.played}</td>
-          <td class="num">${t.wins}</td>
-          <td class="num">${t.draws}</td>
-          <td class="num">${t.losses}</td>
+          <td class="num col-wdl">${t.wins}</td>
+          <td class="num col-wdl">${t.draws}</td>
+          <td class="num col-wdl">${t.losses}</td>
           <td class="num">${gd}</td>
           <td class="num pts-col">${t.points}</td>
         `;

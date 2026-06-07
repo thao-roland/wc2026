@@ -21,9 +21,9 @@
         </nav>
         <div class="spacer"></div>
         ${user
-          ? `<button id="sync-now" class="btn btn-ghost" style="padding:6px 10px;font-size:11px;margin-right:8px" title="Forcer le rafraîchissement des scores">⟳ Scores</button>
+          ? `<button id="sync-now" class="btn btn-ghost" title="Forcer le rafraîchissement des scores">⟳ <span class="label">Scores</span></button>
              <span class="user">${user.username}</span>
-             <button id="logout" class="linkbtn">Déconnexion</button>`
+             <button id="logout" class="linkbtn"><span class="lbl-full">Déconnexion</span><span class="lbl-short">Déco</span></button>`
           : `<a class="linkbtn" href="/login.html">Connexion</a>
              <a class="btn btn-primary" href="/register.html" style="margin-left:12px">S'inscrire</a>`}
       </div>
