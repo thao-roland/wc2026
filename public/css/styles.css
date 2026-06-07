@@ -214,6 +214,14 @@ footer.site {
 }
 .score-grid .row:last-child { border-bottom: 0; }
 
+/* On the group page, lay the bareme out in two columns on wide screens
+   so it stays compact between the leaderboard and the points matrix. */
+@media (min-width: 760px) {
+  .bareme-grid { grid-template-columns: 1fr 1fr; column-gap: 32px; }
+  .bareme-grid .row { border-bottom: 1px solid var(--rule); }
+  .bareme-grid .row:nth-last-child(-n+2) { border-bottom: 0; }
+}
+
 /* ----- forms ----- */
 .auth-card { max-width: 380px; margin: 60px auto; }
 .auth-card h1 {

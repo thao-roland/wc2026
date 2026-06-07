@@ -51,6 +51,7 @@
     root.append(renderHeader(group, stats));
     root.append(renderStats(stats));
     root.append(renderLeaderboard(leaderboard, user.id));
+    root.append(renderBareme());
     root.append(renderMatrix(matrix, user.id));
     root.append(renderWcStandings(wcStandings));
     const twoCol = WC.el('div', { class: 'group-cols fade-in' });
@@ -61,6 +62,31 @@
       root.append(renderPending(pending, gid, load));
     }
     root.append(renderMembers(active, group));
+  }
+
+  // Scoring rules — how points are earned. Same content as the landing
+  // page, repeated here so members never need to leave the group view.
+  function renderBareme() {
+    const items = [
+      ['Score exact',                          '7 pts', 'chip-green'],
+      ["Bon vainqueur + un score d'équipe",    '4 pts', 'chip-green'],
+      ['Bon vainqueur',                        '2 pts', 'chip-gold'],
+      ['Match nul prédit',                     '2 pts', 'chip-gold'],
+      ['Un score juste, mauvais vainqueur',    '1 pt',  'chip-slate'],
+      ['Raté',                                 '0 pt',  'chip-slate'],
+    ];
+    const card = WC.el('section', { class: 'card fade-in', style: 'margin-bottom:18px' },
+      WC.el('h2', { class: 'section' }, 'Barème des points'),
+    );
+    const grid = WC.el('div', { class: 'score-grid bareme-grid' });
+    for (const [label, val, cls] of items) {
+      grid.append(WC.el('div', { class: 'row' },
+        WC.el('span', {}, label),
+        WC.el('span', { class: 'chip ' + cls }, val),
+      ));
+    }
+    card.append(grid);
+    return card;
   }
 
   // 12 WC group standings (A–L), computed live from the matches table.
