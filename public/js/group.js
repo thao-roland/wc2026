@@ -10,7 +10,7 @@
   }
 
   async function fetchAll() {
-    const [g, m, lb, st, up, rc, pm] = await Promise.all([
+    const [g, m, lb, st, up, rc, pm, ws] = await Promise.all([
       WC.sb.from('groups').select('id, name, invite_code, created_by').eq('id', gid).single(),
       WC.sb.from('group_members')
         .select('status, joined_at, user_id, profiles!inner(id, username)')
@@ -22,8 +22,9 @@
       WC.sb.rpc('group_upcoming',        { p_group_id: gid, p_limit: 5 }),
       WC.sb.rpc('group_recent',          { p_group_id: gid, p_limit: 5 }),
       WC.sb.rpc('group_points_matrix',   { p_group_id: gid }),
+      WC.sb.from('wc_group_standings').select('*'),
     ]);
-    for (const r of [g, m, lb, st, up, rc, pm]) if (r.error) throw r.error;
+    for (const r of [g, m, lb, st, up, rc, pm, ws]) if (r.error) throw r.error;
     return {
       group: g.data,
       members: m.data,
@@ -32,6 +33,7 @@
       upcoming: up.data || [],
       recent: rc.data || [],
       matrix: pm.data || [],
+      wcStandings: ws.data || [],
     };
   }
 
@@ -40,7 +42,7 @@
     try { res = await fetchAll(); }
     catch (ex) { root.innerHTML = `<p class="alert">${ex.message}</p>`; return; }
 
-    const { group, members, leaderboard, stats, upcoming, recent, matrix } = res;
+    const { group, members, leaderboard, stats, upcoming, recent, matrix, wcStandings } = res;
     const is_owner = group.created_by === user.id;
     const active  = members.filter((x) => x.status === 'active');
     const pending = members.filter((x) => x.status === 'pending');
@@ -50,6 +52,7 @@
     root.append(renderStats(stats));
     root.append(renderLeaderboard(leaderboard, user.id));
     root.append(renderMatrix(matrix, user.id));
+    root.append(renderWcStandings(wcStandings));
     const twoCol = WC.el('div', { class: 'group-cols fade-in' });
     twoCol.append(renderUpcoming(upcoming));
     twoCol.append(renderRecent(recent, gid));
@@ -58,6 +61,75 @@
       root.append(renderPending(pending, gid, load));
     }
     root.append(renderMembers(active, group));
+  }
+
+  // 12 WC group standings (A–L), computed live from the matches table.
+  // Top 2 = qualified (green), 3rd = best-third lottery (gold), 4th = out.
+  function renderWcStandings(rows) {
+    const card = WC.el('section', { class: 'card fade-in', style: 'margin-bottom:18px' },
+      WC.el('h2', { class: 'section' }, 'Classement des groupes'),
+    );
+    if (rows.length === 0) {
+      card.append(WC.el('p', { class: 'muted' }, 'Aucune donnée pour l\'instant.'));
+      return card;
+    }
+
+    // group rows by group_name (already ordered server-side)
+    const byGroup = new Map();
+    for (const r of rows) {
+      if (!byGroup.has(r.group_name)) byGroup.set(r.group_name, []);
+      byGroup.get(r.group_name).push(r);
+    }
+
+    const grid = WC.el('div', { class: 'wc-groups-grid' });
+    for (const [letter, teams] of [...byGroup.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      const block = WC.el('div', { class: 'wc-group' });
+      block.append(WC.el('div', { class: 'wc-group-head' },
+        WC.el('span', { class: 'wc-group-letter' }, `Groupe ${letter}`),
+      ));
+      const tbl = WC.el('table', { class: 'wc-standings' });
+      tbl.innerHTML = `
+        <thead><tr>
+          <th class="num">#</th>
+          <th>Équipe</th>
+          <th class="num" title="Joués">J</th>
+          <th class="num" title="Victoires">V</th>
+          <th class="num" title="Nuls">N</th>
+          <th class="num" title="Défaites">D</th>
+          <th class="num" title="Différence de buts">+/–</th>
+          <th class="num pts-col">Pts</th>
+        </tr></thead>`;
+      const tb = WC.el('tbody');
+      teams.forEach((t, i) => {
+        const pos = i + 1;
+        const cls = pos <= 2 ? 'q-direct'
+                  : pos === 3 ? 'q-third'
+                  : 'q-out';
+        const tr = WC.el('tr', { class: cls });
+        const gd = t.gd > 0 ? `+${t.gd}` : String(t.gd);
+        tr.innerHTML = `
+          <td class="num pos">${pos}</td>
+          <td class="team">${esc(t.team)}</td>
+          <td class="num">${t.played}</td>
+          <td class="num">${t.wins}</td>
+          <td class="num">${t.draws}</td>
+          <td class="num">${t.losses}</td>
+          <td class="num">${gd}</td>
+          <td class="num pts-col">${t.points}</td>
+        `;
+        tb.append(tr);
+      });
+      tbl.append(tb);
+      block.append(tbl);
+      grid.append(block);
+    }
+    card.append(grid);
+    card.append(WC.el('p', { class: 'muted', style: 'font-size:11px;margin:14px 0 0' },
+      WC.el('span', { class: 'q-dot q-direct' }, ''), ' Qualifiés directs · ',
+      WC.el('span', { class: 'q-dot q-third' }, ''),  ' Meilleurs 3es · ',
+      WC.el('span', { class: 'q-dot q-out' }, ''),    ' Éliminés',
+    ));
+    return card;
   }
 
   function renderHeader(group, stats) {

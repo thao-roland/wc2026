@@ -409,6 +409,84 @@ table.matrix tr.me td.total-cell { background: #1a1f1c; }
 table.matrix tr:hover td:not(.sticky-col):not(.total-cell) { background: rgba(255,255,255,0.02); }
 table.matrix td.pts-cell .chip { font-size: 10px; padding: 2px 8px; }
 
+/* ----- WC group standings (12 mini-tables A–L) ----- */
+.wc-groups-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 600px) { .wc-groups-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) { .wc-groups-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.wc-group {
+  background: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 12px 14px 8px;
+  position: relative;
+}
+.wc-group::before {
+  content: ""; position: absolute; top: 0; left: 0; bottom: 0;
+  width: 2px; background: var(--whistle);
+}
+.wc-group-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.wc-group-letter {
+  font-family: 'Anton', Impact, sans-serif;
+  font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--paper);
+}
+
+table.wc-standings {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+table.wc-standings th, table.wc-standings td {
+  padding: 5px 3px; border-bottom: 1px solid var(--rule);
+}
+table.wc-standings th {
+  color: var(--muted); font-weight: 700; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  text-align: left; padding-bottom: 7px;
+}
+table.wc-standings td.num, table.wc-standings th.num {
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+table.wc-standings td.team {
+  font-weight: 600; padding-left: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 110px;
+}
+table.wc-standings td.pos {
+  width: 18px; color: var(--muted); font-weight: 700;
+}
+table.wc-standings td.pts-col, table.wc-standings th.pts-col {
+  font-weight: 800; padding-right: 4px;
+}
+table.wc-standings tr:last-child td { border-bottom: 0; }
+
+/* qualification status indicators */
+table.wc-standings tr.q-direct td.pos {
+  color: var(--pitch); border-left: 2px solid var(--pitch); padding-left: 4px;
+}
+table.wc-standings tr.q-third td.pos {
+  color: var(--card-y); border-left: 2px solid var(--card-y); padding-left: 4px;
+}
+table.wc-standings tr.q-out td.pos {
+  color: var(--muted); border-left: 2px solid transparent; padding-left: 4px;
+}
+table.wc-standings tr.q-direct td.pts-col { color: var(--pitch); }
+table.wc-standings tr.q-third  td.pts-col { color: var(--card-y); }
+table.wc-standings tr.q-out    td.pts-col { color: var(--muted); }
+
+.q-dot {
+  display: inline-block; width: 8px; height: 8px; vertical-align: middle;
+  margin-right: 4px; margin-left: 6px;
+}
+.q-dot.q-direct { background: var(--pitch); }
+.q-dot.q-third  { background: var(--card-y); }
+.q-dot.q-out    { background: var(--rule); }
+
 /* ----- utility ----- */
 .muted { color: var(--muted); }
 .center { text-align: center; }
