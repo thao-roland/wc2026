@@ -10,17 +10,17 @@
   if (!user) return;
 
   // Charge en parallèle : les picks du joueur, les équipes du tournoi,
-  // le premier match (pour savoir si c'est verrouillé).
-  const [picksRes, teamsRes, firstRes] = await Promise.all([
+  // la date butoir (stockée dans tournament_results.picks_lock_at).
+  const [picksRes, teamsRes, deadlineRes] = await Promise.all([
     WC.sb.from('tournament_picks').select('*').eq('user_id', user.id).maybeSingle(),
     WC.sb.from('wc_teams').select('team'),
-    WC.sb.from('matches').select('match_date').order('match_date').limit(1).maybeSingle(),
+    WC.sb.from('tournament_results').select('picks_lock_at').eq('id', 1).maybeSingle(),
   ]);
 
   const picks = picksRes.data || {};
   const teams = (teamsRes.data || []).map((r) => r.team).filter(Boolean).sort();
-  const firstMatchDate = firstRes.data ? new Date(firstRes.data.match_date) : null;
-  const locked = firstMatchDate ? Date.now() >= firstMatchDate.getTime() : false;
+  const deadline = deadlineRes.data?.picks_lock_at ? new Date(deadlineRes.data.picks_lock_at) : null;
+  const locked = deadline ? Date.now() >= deadline.getTime() : false;
 
   const card = WC.el('section', { class: 'card fade-in picks-card' });
   card.append(WC.el('h2', { class: 'section' },
@@ -114,9 +114,9 @@
   card.append(grid);
   card.append(WC.el('div', { class: 'flex-between', style: 'margin-top:14px;gap:12px' },
     WC.el('p', { class: 'muted', style: 'font-size:11px;margin:0;text-transform:uppercase;letter-spacing:0.06em' },
-      firstMatchDate
-        ? `Verrouillage le ${WC.fmtDate(firstMatchDate.toISOString())}`
-        : 'Verrouillage au coup d\'envoi du tournoi'),
+      deadline
+        ? `Verrouillage le ${WC.fmtDate(deadline.toISOString())}`
+        : 'Verrouillage à fixer'),
     saveBtn,
   ));
   card.append(status);
