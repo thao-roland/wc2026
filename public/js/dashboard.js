@@ -16,7 +16,8 @@
 
   function pointChip(pts) {
     if (pts === null || pts === undefined) return null;
-    const cls = pts >= 7 ? 'chip-green' : pts >= 2 ? 'chip-gold' : 'chip-slate';
+    // 5 = exact (best), 3 = winner+score, 2 = winner / draw, 1 = consolation/score, 0 = no prono
+    const cls = pts >= 3 ? 'chip-green' : pts >= 2 ? 'chip-gold' : 'chip-slate';
     return WC.el('span', { class: `chip ${cls}`, style: 'margin-top:4px' }, `+${pts} pts`);
   }
 

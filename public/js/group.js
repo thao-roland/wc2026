@@ -68,12 +68,12 @@
   // page, repeated here so members never need to leave the group view.
   function renderBareme() {
     const items = [
-      ['Score exact',                          '7 pts', 'chip-green'],
-      ["Bon vainqueur + un score d'équipe",    '4 pts', 'chip-green'],
+      ['Score exact',                          '5 pts', 'chip-green'],
+      ["Bon vainqueur + un score d'équipe",    '3 pts', 'chip-green'],
       ['Bon vainqueur',                        '2 pts', 'chip-gold'],
       ['Match nul prédit',                     '2 pts', 'chip-gold'],
       ['Un score juste, mauvais vainqueur',    '1 pt',  'chip-slate'],
-      ['Raté',                                 '0 pt',  'chip-slate'],
+      ['Raté (prono déposé)',                  '1 pt',  'chip-slate'],
     ];
     const card = WC.el('section', { class: 'card fade-in', style: 'margin-bottom:18px' },
       WC.el('h2', { class: 'section' }, 'Barème des points'),
@@ -295,7 +295,7 @@
         if (!had) {
           cell.append(WC.el('span', { class: 'muted', title: 'Pas de prono' }, '–'));
         } else {
-          const cls = pts >= 7 ? 'chip-green' : pts >= 2 ? 'chip-gold' : 'chip-slate';
+          const cls = pts >= 3 ? 'chip-green' : pts >= 2 ? 'chip-gold' : 'chip-slate';
           cell.append(WC.el('span', { class: `chip ${cls}` }, String(pts)));
         }
         tr.append(cell);
@@ -437,7 +437,7 @@
     rows.forEach((r) => {
       const pts = r.points_earned;
       const chip = pts === null ? '' :
-        pts >= 7 ? `<span class="chip chip-green">${pts}</span>` :
+        pts >= 3 ? `<span class="chip chip-green">${pts}</span>` :
         pts >= 2 ? `<span class="chip chip-gold">${pts}</span>` :
                    `<span class="chip chip-slate">${pts}</span>`;
       const tr = WC.el('tr', { class: r.is_me ? 'me' : '' });
