@@ -10,7 +10,7 @@
   }
 
   async function fetchAll() {
-    const [g, m, lb, st, up, rc, pm, ws] = await Promise.all([
+    const [g, m, lb, st, up, rc, pm, ws, tp, tr] = await Promise.all([
       WC.sb.from('groups').select('id, name, invite_code, created_by').eq('id', gid).single(),
       WC.sb.from('group_members')
         .select('status, joined_at, user_id, profiles!inner(id, username)')
@@ -23,8 +23,10 @@
       WC.sb.rpc('group_recent',          { p_group_id: gid, p_limit: 5 }),
       WC.sb.rpc('group_points_matrix',   { p_group_id: gid }),
       WC.sb.from('wc_group_standings').select('*'),
+      WC.sb.from('tournament_picks').select('user_id, winner_team, top_scorer, top_assister, points_winner, points_top_scorer, points_top_assister'),
+      WC.sb.from('tournament_results').select('*').eq('id', 1).maybeSingle(),
     ]);
-    for (const r of [g, m, lb, st, up, rc, pm, ws]) if (r.error) throw r.error;
+    for (const r of [g, m, lb, st, up, rc, pm, ws, tp, tr]) if (r.error) throw r.error;
     return {
       group: g.data,
       members: m.data,
@@ -34,6 +36,8 @@
       recent: rc.data || [],
       matrix: pm.data || [],
       wcStandings: ws.data || [],
+      tournamentPicks: tp.data || [],
+      tournamentResults: tr.data || null,
     };
   }
 
@@ -42,7 +46,8 @@
     try { res = await fetchAll(); }
     catch (ex) { root.innerHTML = `<p class="alert">${ex.message}</p>`; return; }
 
-    const { group, members, leaderboard, stats, upcoming, recent, matrix, wcStandings } = res;
+    const { group, members, leaderboard, stats, upcoming, recent, matrix, wcStandings,
+            tournamentPicks, tournamentResults } = res;
     const is_owner = group.created_by === user.id;
     const active  = members.filter((x) => x.status === 'active');
     const pending = members.filter((x) => x.status === 'pending');
@@ -53,6 +58,7 @@
     root.append(renderLeaderboard(leaderboard, user.id));
     root.append(renderBareme());
     root.append(renderMatrix(matrix, user.id));
+    root.append(renderTournamentPicks(active, tournamentPicks, tournamentResults, is_owner, user.id, load));
     root.append(renderWcStandings(wcStandings));
     const twoCol = WC.el('div', { class: 'group-cols fade-in' });
     twoCol.append(renderUpcoming(upcoming));
@@ -87,6 +93,112 @@
     }
     card.append(grid);
     return card;
+  }
+
+  // Tournament-long picks (winner / top scorer / top assister) :
+  // - tableau récap des pronos de tous les membres
+  // - si les résultats officiels sont connus, on affiche les points
+  // - si l'utilisateur est créateur du groupe, on lui propose un mini
+  //   formulaire pour saisir les résultats officiels
+  function renderTournamentPicks(activeMembers, picks, results, is_owner, myId, reload) {
+    const card = WC.el('section', { class: 'card fade-in', style: 'margin-bottom:18px' },
+      WC.el('h2', { class: 'section' }, 'Pronos longs · vainqueur · buteur · passeur'),
+    );
+
+    const picksByUser = new Map(picks.map((p) => [p.user_id, p]));
+
+    // table principale
+    const table = WC.el('table', { class: 'lb picks-table' });
+    table.innerHTML = `
+      <thead><tr>
+        <th>Joueur</th>
+        <th>🏆 Vainqueur</th>
+        <th>⚽ Buteur</th>
+        <th>🎯 Passeur</th>
+        <th class="num">Bonus</th>
+      </tr></thead>`;
+    const tbody = WC.el('tbody');
+    for (const m of activeMembers) {
+      const uid = m.profiles.id;
+      const p = picksByUser.get(uid) || {};
+      const totalBonus = (p.points_winner || 0) + (p.points_top_scorer || 0) + (p.points_top_assister || 0);
+      const tr = WC.el('tr', { class: uid === myId ? 'me' : '' });
+      tr.innerHTML = `
+        <td style="font-weight:700">${esc(m.profiles.username)}${uid === myId ? ' <span class="chip chip-green">toi</span>' : ''}</td>
+        <td>${pickCell(p.winner_team, p.points_winner, results?.winner_team)}</td>
+        <td>${pickCell(p.top_scorer, p.points_top_scorer, results?.top_scorer)}</td>
+        <td>${pickCell(p.top_assister, p.points_top_assister, results?.top_assister)}</td>
+        <td class="pts">${totalBonus}</td>
+      `;
+      tbody.append(tr);
+    }
+    table.append(tbody);
+    card.append(WC.el('div', { style: 'overflow-x:auto' }, table));
+
+    // résultats officiels (si saisis)
+    if (results && (results.winner_team || results.top_scorer || results.top_assister)) {
+      card.append(WC.el('div', { class: 'official-results' },
+        WC.el('span', { class: 'official-label' }, 'Résultats officiels :'),
+        results.winner_team   ? WC.el('span', { class: 'chip chip-gold' }, `🏆 ${results.winner_team}`) : null,
+        results.top_scorer    ? WC.el('span', { class: 'chip chip-gold' }, `⚽ ${results.top_scorer}`) : null,
+        results.top_assister  ? WC.el('span', { class: 'chip chip-gold' }, `🎯 ${results.top_assister}`) : null,
+      ));
+    }
+
+    // formulaire owner
+    if (is_owner) {
+      card.append(renderResultsForm(results, reload));
+    }
+
+    card.append(WC.el('p', { class: 'muted', style: 'font-size:11px;margin:14px 0 0' },
+      'Barème : vainqueur +15 pts · meilleur buteur +10 pts · meilleur passeur +10 pts. Verrouillés au coup d\'envoi du tournoi.'));
+
+    return card;
+  }
+
+  function pickCell(choice, points, actual) {
+    if (!choice) return '<span class="muted">—</span>';
+    const right = actual && choice.toLowerCase() === (actual || '').toLowerCase();
+    const safe = esc(choice);
+    if (points > 0)        return `${safe} <span class="chip chip-green">+${points}</span>`;
+    if (actual && !right)  return `<span class="strike">${safe}</span>`;
+    return safe;
+  }
+
+  function renderResultsForm(results, reload) {
+    const block = WC.el('details', { class: 'owner-results' });
+    const summary = WC.el('summary', {}, '⚙ Saisir les résultats officiels');
+    block.append(summary);
+
+    const winner   = WC.el('input', { class: 'input', placeholder: 'Vainqueur (ex: France)',  value: results?.winner_team  || '' });
+    const scorer   = WC.el('input', { class: 'input', placeholder: 'Meilleur buteur',          value: results?.top_scorer   || '' });
+    const assister = WC.el('input', { class: 'input', placeholder: 'Meilleur passeur',         value: results?.top_assister || '' });
+    const status   = WC.el('p', { style: 'font-size:12px;margin:0' });
+
+    const save = WC.el('button', { class: 'btn btn-primary' }, 'Enregistrer & recalculer');
+    save.addEventListener('click', async () => {
+      save.disabled = true; status.textContent = '';
+      try {
+        const { error } = await WC.sb.from('tournament_results').update({
+          winner_team:  winner.value.trim()  || null,
+          top_scorer:   scorer.value.trim()  || null,
+          top_assister: assister.value.trim() || null,
+        }).eq('id', 1);
+        if (error) throw error;
+        status.textContent = 'Enregistré · points bonus recalculés.';
+        status.style.color = 'var(--pitch)';
+        reload();
+      } catch (ex) {
+        status.textContent = ex.message || 'Échec';
+        status.style.color = 'var(--whistle)';
+      } finally { save.disabled = false; }
+    });
+
+    block.append(WC.el('div', { class: 'results-form' },
+      winner, scorer, assister, save,
+    ));
+    block.append(status);
+    return block;
   }
 
   // 12 WC group standings (A–L), computed live from the matches table.
