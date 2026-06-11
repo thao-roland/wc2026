@@ -122,6 +122,11 @@ create policy tr_update_admin on public.tournament_results
 
 -- classement : on ajoute le bonus tournoi au total et on l'expose
 -- séparément (utile pour l'afficher dans la page groupe).
+-- DROP nécessaire parce qu'on modifie la signature (ajout de colonnes
+-- match_points et tournament_bonus) — Postgres refuse CREATE OR REPLACE
+-- dans ce cas.
+drop function if exists public.group_leaderboard(bigint);
+
 create or replace function public.group_leaderboard(p_group_id bigint)
 returns table (
   user_id            uuid,
