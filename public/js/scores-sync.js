@@ -60,24 +60,40 @@ function statusFromTSDB(strStatus, hasScore, kickoffMs) {
   return 'live';
 }
 
-// Try each season variant until we get a non-empty events array.
+// Fetch every season variant in parallel and merge. TheSportsDB
+// sometimes splits a tournament between "2026" and "2025-2026" (group
+// stage in one, knockout in the other), so taking the first non-empty
+// response would silently miss the other half.
 async function fetchTSDB() {
-  for (const season of TSDB_SEASONS) {
+  const results = await Promise.all(TSDB_SEASONS.map(async (season) => {
     const url = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}/eventsseason.php?id=${TSDB_LEAGUE}&s=${season}`;
     try {
       const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) continue;
+      if (!res.ok) return [];
       const j = await res.json();
-      if (Array.isArray(j.events) && j.events.length > 0) {
-        if (window.__wc26_sync_logged !== season) {
-          console.log(`[sync] using TheSportsDB season "${season}" (${j.events.length} events)`);
-          window.__wc26_sync_logged = season;
-        }
-        return j.events;
+      const evs = Array.isArray(j.events) ? j.events : [];
+      if (evs.length > 0) {
+        console.log(`[sync] season "${season}" → ${evs.length} events`);
       }
-    } catch (e) { /* try the next */ }
+      return evs;
+    } catch (e) { return []; }
+  }));
+
+  // Déduplique par idEvent quand TheSportsDB renvoie le même match
+  // dans plusieurs saisons.
+  const merged = new Map();
+  for (const arr of results) {
+    for (const ev of arr) {
+      const key = ev.idEvent || `${ev.strHomeTeam}|${ev.strAwayTeam}|${ev.dateEvent || ''}`;
+      merged.set(key, ev);
+    }
   }
-  return [];
+  const events = [...merged.values()];
+  if (events.length > 0 && window.__wc26_sync_total !== events.length) {
+    console.log(`[sync] total ${events.length} unique events across all seasons`);
+    window.__wc26_sync_total = events.length;
+  }
+  return events;
 }
 
 async function syncScoresOnce() {
