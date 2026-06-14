@@ -60,37 +60,64 @@ function statusFromTSDB(strStatus, hasScore, kickoffMs) {
   return 'live';
 }
 
-// Fetch every season variant in parallel and merge. TheSportsDB
-// sometimes splits a tournament between "2026" and "2025-2026" (group
-// stage in one, knockout in the other), so taking the first non-empty
-// response would silently miss the other half.
+// Two parallel passes, merged at the end :
+//   - eventsseason.php × 3 variants → bulk index when TheSportsDB has it
+//   - eventsday.php × derniers jours → indexe par date, attrape les
+//     matchs récents que l'index 'season' ne référence pas encore
+// On merge sur idEvent en gardant la version la plus 'fraîche' (celle
+// qui a un score quand l'autre n'en a pas).
 async function fetchTSDB() {
-  const results = await Promise.all(TSDB_SEASONS.map(async (season) => {
+  const today = new Date();
+  const days = [];
+  for (let i = -5; i <= 1; i++) {
+    const d = new Date(today.getTime() + i * 86_400_000);
+    days.push(d.toISOString().slice(0, 10));
+  }
+
+  const seasonReqs = TSDB_SEASONS.map(async (season) => {
     const url = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}/eventsseason.php?id=${TSDB_LEAGUE}&s=${season}`;
     try {
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) return [];
       const j = await res.json();
       const evs = Array.isArray(j.events) ? j.events : [];
-      if (evs.length > 0) {
-        console.log(`[sync] season "${season}" → ${evs.length} events`);
-      }
+      if (evs.length > 0) console.log(`[sync] season "${season}" → ${evs.length} events`);
       return evs;
-    } catch (e) { return []; }
-  }));
+    } catch { return []; }
+  });
 
-  // Déduplique par idEvent quand TheSportsDB renvoie le même match
-  // dans plusieurs saisons.
+  const dayReqs = days.map(async (d) => {
+    const url = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}/eventsday.php?d=${d}&s=Soccer`;
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) return [];
+      const j = await res.json();
+      const all = Array.isArray(j.events) ? j.events : [];
+      return all.filter((ev) => ev.idLeague === String(TSDB_LEAGUE));
+    } catch { return []; }
+  });
+
+  const results = await Promise.all([...seasonReqs, ...dayReqs]);
+  const dayMatches = results.slice(TSDB_SEASONS.length).flat();
+  if (dayMatches.length > 0) {
+    console.log(`[sync] day endpoint → ${dayMatches.length} WC events (sur ${days.length} jours)`);
+  }
+
   const merged = new Map();
   for (const arr of results) {
     for (const ev of arr) {
       const key = ev.idEvent || `${ev.strHomeTeam}|${ev.strAwayTeam}|${ev.dateEvent || ''}`;
-      merged.set(key, ev);
+      const existing = merged.get(key);
+      if (!existing) { merged.set(key, ev); continue; }
+      // Privilégie la version qui a un score quand l'autre n'en a pas.
+      const ehas = existing.intHomeScore && existing.intHomeScore !== '';
+      const nhas = ev.intHomeScore && ev.intHomeScore !== '';
+      if (nhas && !ehas) merged.set(key, ev);
     }
   }
   const events = [...merged.values()];
   if (events.length > 0 && window.__wc26_sync_total !== events.length) {
-    console.log(`[sync] total ${events.length} unique events across all seasons`);
+    console.log(`[sync] total ${events.length} événements uniques (toutes sources confondues)`);
     window.__wc26_sync_total = events.length;
   }
   return events;
