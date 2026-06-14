@@ -38,14 +38,25 @@ function normalize(s) {
   return ALIASES[n] || n;
 }
 
-function statusFromTSDB(strStatus, hasScore) {
+function statusFromTSDB(strStatus, hasScore, kickoffMs) {
   const s = (strStatus || '').toLowerCase().trim();
-  if (!s || s === 'not started' || s === 'ns' || s.includes('postponed')) {
-    return hasScore ? 'live' : 'upcoming';
-  }
-  if (s.includes('finish') || s === 'ft' || s === 'aet' || s === 'pen' || s.includes('after')) {
+  // Statuts explicites "terminé"
+  if (s.includes('finish') || s.includes('played') || s.includes('after')
+      || s === 'ft' || s === 'aet' || s === 'pen' || s === 'ap') {
     return 'finished';
   }
+  // Statuts explicites "pas commencé"
+  if (s === 'not started' || s === 'ns' || s.includes('postponed') || s.includes('cancel')) {
+    return 'upcoming';
+  }
+  // Aucun statut clair : on déduit du contexte (heure de coup d'envoi + score).
+  if (kickoffMs && Date.now() >= kickoffMs + 2.5 * 60 * 60 * 1000 && hasScore) {
+    return 'finished';   // > 2h30 après le coup d'envoi avec un score = match fini
+  }
+  if (!s || s === '') {
+    return hasScore ? 'live' : 'upcoming';
+  }
+  // 1ère mi-temps, mi-temps, 2e mi-temps, "live", etc.
   return 'live';
 }
 
@@ -85,29 +96,50 @@ async function syncScoresOnce() {
 
   const { data: local, error } = await WC.sb
     .from('matches')
-    .select('id, team_home, team_away, score_home, score_away, status');
+    .select('id, team_home, team_away, match_date, score_home, score_away, status');
   if (error) {
     console.warn('[sync] db read:', error.message);
     return { updated: 0, reason: error.message };
   }
 
+  // Indexe les matchs locaux par paire (home|away) ET par paire inversée
+  // (away|home) pour tolérer un swap home/away côté API.
   const byPair = new Map();
+  const byPairRev = new Map();
   for (const m of local) {
-    byPair.set(`${normalize(m.team_home)}|${normalize(m.team_away)}`, m);
+    const h = normalize(m.team_home);
+    const a = normalize(m.team_away);
+    byPair.set(`${h}|${a}`, m);
+    byPairRev.set(`${a}|${h}`, m);
   }
 
   let updated = 0, matched = 0;
+  const unmatched = [];
   for (const ev of apiEvents) {
-    const key = `${normalize(ev.strHomeTeam)}|${normalize(ev.strAwayTeam)}`;
-    const match = byPair.get(key);
-    if (!match) continue;
+    const apiH = normalize(ev.strHomeTeam);
+    const apiA = normalize(ev.strAwayTeam);
+    let match = byPair.get(`${apiH}|${apiA}`);
+    let swapped = false;
+    if (!match) {
+      match = byPairRev.get(`${apiH}|${apiA}`);
+      if (match) swapped = true;
+    }
+    if (!match) {
+      unmatched.push(`${ev.strHomeTeam} vs ${ev.strAwayTeam}`);
+      continue;
+    }
     matched++;
 
-    const sH = (ev.intHomeScore === null || ev.intHomeScore === '' || ev.intHomeScore === undefined)
+    // Si TheSportsDB a inversé home/away, on inverse les scores aussi.
+    const rawH = (ev.intHomeScore === null || ev.intHomeScore === '' || ev.intHomeScore === undefined)
       ? null : Number(ev.intHomeScore);
-    const sA = (ev.intAwayScore === null || ev.intAwayScore === '' || ev.intAwayScore === undefined)
+    const rawA = (ev.intAwayScore === null || ev.intAwayScore === '' || ev.intAwayScore === undefined)
       ? null : Number(ev.intAwayScore);
-    const status = statusFromTSDB(ev.strStatus, sH !== null || sA !== null);
+    const sH = swapped ? rawA : rawH;
+    const sA = swapped ? rawH : rawA;
+
+    const kickoffMs = match.match_date ? new Date(match.match_date).getTime() : null;
+    const status = statusFromTSDB(ev.strStatus, sH !== null || sA !== null, kickoffMs);
 
     if (match.status === status && match.score_home === sH && match.score_away === sA) continue;
 
@@ -119,6 +151,9 @@ async function syncScoresOnce() {
     updated++;
   }
   console.log(`[sync] matched ${matched}/${apiEvents.length} events · updated ${updated} match(es)`);
+  if (unmatched.length > 0 && unmatched.length <= 20) {
+    console.log('[sync] unmatched events :', unmatched);
+  }
   if (updated > 0) {
     window.dispatchEvent(new CustomEvent('wc26:scores-synced', { detail: { updated } }));
   }
