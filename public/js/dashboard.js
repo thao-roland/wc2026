@@ -14,6 +14,55 @@
     load();
   });
 
+  // Filet de sécurité quand l'API TheSportsDB n'a pas (encore) le
+  // résultat d'un match passé. N'importe quel membre peut le saisir ;
+  // le trigger Postgres recalcule les points automatiquement.
+  function renderManualScoreEditor(m, onSaved) {
+    const wrap = WC.el('div', { class: 'manual-score-wrap', style: 'margin-top:6px' });
+    const trigger = WC.el('button', { class: 'manual-score-btn' },
+      '✏ Score manquant — saisir le résultat');
+
+    trigger.addEventListener('click', () => {
+      wrap.removeChild(trigger);
+      const sh = WC.el('input', { class: 'input', type: 'number', min: 0, max: 20, placeholder: '–', style: 'width:60px;font-size:16px' });
+      const sa = WC.el('input', { class: 'input', type: 'number', min: 0, max: 20, placeholder: '–', style: 'width:60px;font-size:16px' });
+      const status = WC.el('p', { style: 'font-size:11px;margin:6px 0 0' });
+      const save = WC.el('button', { class: 'btn btn-primary', style: 'padding:8px 12px;min-height:0' }, 'Enregistrer');
+      const cancel = WC.el('button', { class: 'btn btn-ghost', style: 'padding:8px 12px;min-height:0' }, 'Annuler');
+
+      save.addEventListener('click', async () => {
+        if (sh.value === '' || sa.value === '') return;
+        save.disabled = true; save.textContent = '…';
+        try {
+          const { error } = await WC.sb.from('matches').update({
+            score_home: Number(sh.value),
+            score_away: Number(sa.value),
+            status: 'finished',
+          }).eq('id', m.id);
+          if (error) throw error;
+          status.textContent = 'Enregistré — points recalculés.';
+          status.style.color = 'var(--pitch)';
+          setTimeout(onSaved, 600);
+        } catch (ex) {
+          status.textContent = ex.message || 'Échec';
+          status.style.color = 'var(--whistle)';
+          save.disabled = false; save.textContent = 'Enregistrer';
+        }
+      });
+      cancel.addEventListener('click', () => onSaved());
+
+      const row = WC.el('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' },
+        sh, WC.el('span', { style: 'color:var(--muted)' }, ':'), sa,
+        save, cancel,
+      );
+      wrap.append(row, status);
+      sh.focus();
+    });
+
+    wrap.append(trigger);
+    return wrap;
+  }
+
   function pointChip(pts) {
     if (pts === null || pts === undefined) return null;
     // 5 = exact (best), 3 = winner+score, 2 = winner / draw, 1 = consolation/score, 0 = no prono
@@ -68,6 +117,13 @@
       left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
     } else if (m.status === 'live' && m.score_home !== null) {
       left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
+    }
+
+    // Match commencé depuis > 2h et toujours pas finished → l'API TheSportsDB
+    // est sûrement à la traîne. Bouton de saisie manuelle pour débloquer.
+    if (locked && m.status !== 'finished'
+        && kickoff && Date.now() >= kickoff + 2 * 60 * 60 * 1000) {
+      left.append(renderManualScoreEditor(m, load));
     }
 
     let right;
