@@ -119,10 +119,9 @@
       left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
     }
 
-    // Match commencé depuis > 2h et toujours pas finished → l'API TheSportsDB
-    // est sûrement à la traîne. Bouton de saisie manuelle pour débloquer.
-    if (locked && m.status !== 'finished'
-        && kickoff && Date.now() >= kickoff + 2 * 60 * 60 * 1000) {
+    // Match commencé et pas encore 'finished' → bouton de saisie manuelle
+    // pour débloquer en cas de retard de TheSportsDB.
+    if (locked && m.status !== 'finished') {
       left.append(renderManualScoreEditor(m, load));
     }
 
