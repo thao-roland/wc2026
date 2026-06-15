@@ -118,12 +118,8 @@
     } else if (m.status === 'live' && m.score_home !== null) {
       left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
     }
-
-    // Match commencé et pas encore 'finished' → bouton de saisie manuelle
-    // pour débloquer en cas de retard de TheSportsDB.
-    if (locked && m.status !== 'finished') {
-      left.append(renderManualScoreEditor(m, load));
-    }
+    // Bouton de saisie manuelle désactivé par défaut (cf. renderManualScoreEditor
+    // plus bas). Active-le ponctuellement quand un match précis bloque.
 
     let right;
     if (locked) {
