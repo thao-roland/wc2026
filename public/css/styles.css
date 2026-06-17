@@ -351,9 +351,7 @@ footer.site {
 
 /* ----- finished-matches fold ----- */
 details.finished-fold {
-  margin-top: 28px;
-  border-top: 1px solid var(--rule);
-  padding-top: 18px;
+  margin-bottom: 18px;
 }
 details.finished-fold summary {
   cursor: pointer;
