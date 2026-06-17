@@ -118,8 +118,19 @@
     } else if (m.status === 'live' && m.score_home !== null) {
       left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
     }
-    // Bouton de saisie manuelle désactivé par défaut (cf. renderManualScoreEditor
-    // plus bas). Active-le ponctuellement quand un match précis bloque.
+
+    // Liste des matchs où on autorise la saisie manuelle du score.
+    // S'enrichit à la demande du user (cf. renderManualScoreEditor).
+    const MANUAL_SCORE = [
+      { home: 'Iraq', away: 'Norway' },
+    ];
+    const manualEnabled = MANUAL_SCORE.some(
+      (e) => (e.home === m.team_home && e.away === m.team_away)
+          || (e.home === m.team_away && e.away === m.team_home),
+    );
+    if (locked && m.status !== 'finished' && manualEnabled) {
+      left.append(renderManualScoreEditor(m, load));
+    }
 
     let right;
     if (locked) {
