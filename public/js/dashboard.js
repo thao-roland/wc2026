@@ -196,7 +196,31 @@
         list.innerHTML = '<p class="muted">Aucun match trouvé.</p>';
         return;
       }
-      for (const m of matches) list.append(renderMatch(m));
+
+      const ongoing  = matches.filter((m) => m.status !== 'finished');
+      const finished = matches.filter((m) => m.status === 'finished');
+
+      // Matchs à venir / en cours : affichés direct, c'est ce qu'on veut voir
+      // d'abord pour pouvoir parier.
+      for (const m of ongoing) list.append(renderMatch(m));
+      if (ongoing.length === 0) {
+        list.append(WC.el('p', { class: 'muted' }, 'Aucun match à venir dans cette catégorie.'));
+      }
+
+      // Matchs terminés : rangés dans un dépliant pour éviter le scroll
+      // sans fin pendant le tournoi.
+      if (finished.length > 0) {
+        const fold = WC.el('details', { class: 'finished-fold' });
+        const summary = WC.el('summary', {},
+          WC.el('span', { class: 'fold-title' }, 'Matchs terminés'),
+          WC.el('span', { class: 'fold-count' }, String(finished.length)),
+        );
+        fold.append(summary);
+        const inner = WC.el('div', { class: 'list', style: 'margin-top:12px' });
+        for (const m of finished) inner.append(renderMatch(m));
+        fold.append(inner);
+        list.append(fold);
+      }
     } catch (ex) {
       list.innerHTML = `<p class="alert">${ex.message || 'Erreur de chargement'}</p>`;
     }
