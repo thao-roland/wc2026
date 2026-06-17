@@ -123,6 +123,7 @@
     // S'enrichit à la demande du user (cf. renderManualScoreEditor).
     const MANUAL_SCORE = [
       { home: 'Iraq', away: 'Norway' },
+      { home: 'Portugal', away: 'DR Congo' },
     ];
     const manualEnabled = MANUAL_SCORE.some(
       (e) => (e.home === m.team_home && e.away === m.team_away)
