@@ -100,10 +100,30 @@
     const kickoff = new Date(m.match_date).getTime();
     const locked = m.status !== 'upcoming' || Date.now() >= kickoff;
 
+    // Détection "live" robuste : on se fie au statut, mais on prend
+    // aussi le relais si on est entre le coup d'envoi et coup d'envoi
+    // + 2h30 alors que TheSportsDB tarde à basculer 'upcoming' → 'live'.
+    const playingWindow = kickoff
+      && Date.now() >= kickoff
+      && Date.now() < kickoff + 2.5 * 60 * 60 * 1000;
+    const isLive = m.status === 'live'
+      || (m.status === 'upcoming' && playingWindow);
+    const hasLiveScore = m.score_home !== null && m.score_away !== null;
+
+    const liveChip = isLive
+      ? WC.el('span', { class: 'chip chip-red live-pulse' }, 'EN DIRECT')
+      : null;
+    const liveScoreChip = isLive && hasLiveScore
+      ? WC.el('span', { class: 'chip chip-live-score' },
+          `${m.score_home} - ${m.score_away}`)
+      : null;
+    const finishedChip = m.status === 'finished'
+      ? WC.el('span', { class: 'chip chip-green' }, 'TERMINÉ')
+      : null;
+
     const meta = WC.el('div', { class: 'match-meta' },
       `${stageLabel(m.stage)}${m.group_name ? ' · Groupe ' + m.group_name : ''} · ${WC.fmtDate(m.match_date)}`,
-      m.status === 'live' ? WC.el('span', { class: 'chip chip-gold' }, 'EN DIRECT') : null,
-      m.status === 'finished' ? WC.el('span', { class: 'chip chip-green' }, 'TERMINÉ') : null,
+      liveChip, liveScoreChip, finishedChip,
     );
 
     const teams = WC.el('div', { class: 'match-teams' },
@@ -115,8 +135,9 @@
     const left = WC.el('div', {}, meta, teams);
     if (m.status === 'finished') {
       left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
-    } else if (m.status === 'live' && m.score_home !== null) {
-      left.append(WC.el('div', { class: 'final-score' }, `${m.score_home} – ${m.score_away}`));
+    } else if (isLive && hasLiveScore) {
+      left.append(WC.el('div', { class: 'final-score live-score' },
+        `${m.score_home} – ${m.score_away}`));
     }
 
     // Liste des matchs où on autorise la saisie manuelle du score.
