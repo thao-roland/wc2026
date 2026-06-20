@@ -153,7 +153,6 @@
       { home: 'Scotland', away: 'Morocco' },
       { home: 'Türkiye', away: 'Paraguay' },
       { home: 'Netherlands', away: 'Sweden' },
-      { home: 'Germany', away: 'Ivory Coast' },
     ];
     const manualEnabled = MANUAL_SCORE.some(
       (e) => (e.home === m.team_home && e.away === m.team_away)
