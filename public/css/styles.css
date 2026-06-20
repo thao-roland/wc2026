@@ -159,6 +159,15 @@ nav.site a.active::after {
 @media (min-width: 540px) {
   #sync-now .label { display: inline; }
 }
+.sync-status {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-right: 8px;
+  font-variant-numeric: tabular-nums;
+  display: none;
+}
+@media (min-width: 720px) { .sync-status { display: inline; } }
 
 footer.site {
   padding: 36px 0; text-align: center; color: var(--muted); font-size: 12px;

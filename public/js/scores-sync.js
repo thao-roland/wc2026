@@ -60,15 +60,13 @@ function statusFromTSDB(strStatus, hasScore, kickoffMs) {
   return 'live';
 }
 
-// Two parallel passes, merged at the end :
-//   - eventsseason.php × 3 variants → bulk index when TheSportsDB has it
-//   - eventsday.php × derniers jours → indexe par date, attrape les
-//     matchs récents que l'index 'season' ne référence pas encore
-//   - eventsround.php × rounds 1-3 + 125 → indexe par journée
-//     (matchday 1/2/3 et phases finales), utile pour les groupes G/H/I
-//     que les autres endpoints oublient parfois
-// On merge sur idEvent en gardant la version la plus 'fraîche' (celle
-// qui a un score quand l'autre n'en a pas).
+// Trois sources, en parallèle, merge sur idEvent :
+//   - eventsseason.php × 3 saisons → l'index bulk quand il existe
+//   - eventsday.php × 5 derniers jours → indexe par date
+//   - livescore.php (1 appel) → matchs actuellement en cours
+// On gardait avant un eventsround.php × 21 combinaisons. Plus de mal
+// que de bien : ça consommait la limite de la clé gratuite '3' et
+// renvoyait surtout des doublons. Supprimé.
 async function fetchTSDB() {
   const today = new Date();
   const days = [];
@@ -76,19 +74,17 @@ async function fetchTSDB() {
     const d = new Date(today.getTime() + i * 86_400_000);
     days.push(d.toISOString().slice(0, 10));
   }
-  // Matchday 1/2/3 group stage, puis manches éliminatoires
-  const rounds = [1, 2, 3, 125, 150, 200, 250];
 
   const seasonReqs = TSDB_SEASONS.map(async (season) => {
     const url = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}/eventsseason.php?id=${TSDB_LEAGUE}&s=${season}`;
     try {
       const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) return [];
+      if (!res.ok) { console.warn(`[sync] season "${season}" HTTP ${res.status}`); return []; }
       const j = await res.json();
       const evs = Array.isArray(j.events) ? j.events : [];
       if (evs.length > 0) console.log(`[sync] season "${season}" → ${evs.length} events`);
       return evs;
-    } catch { return []; }
+    } catch (e) { console.warn(`[sync] season "${season}" fetch failed:`, e.message); return []; }
   });
 
   const dayReqs = days.map(async (d) => {
@@ -102,26 +98,22 @@ async function fetchTSDB() {
     } catch { return []; }
   });
 
-  const roundReqs = TSDB_SEASONS.flatMap((season) =>
-    rounds.map(async (round) => {
-      const url = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}/eventsround.php?id=${TSDB_LEAGUE}&r=${round}&s=${season}`;
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) return [];
-        const j = await res.json();
-        return Array.isArray(j.events) ? j.events : [];
-      } catch { return []; }
-    })
-  );
+  const liveReq = (async () => {
+    const url = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}/livescore.php?l=${TSDB_LEAGUE}`;
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) return [];
+      const j = await res.json();
+      const evs = Array.isArray(j.events) ? j.events : [];
+      if (evs.length > 0) console.log(`[sync] livescore → ${evs.length} match(s) en cours`);
+      return evs;
+    } catch { return []; }
+  })();
 
-  const results = await Promise.all([...seasonReqs, ...dayReqs, ...roundReqs]);
+  const results = await Promise.all([...seasonReqs, ...dayReqs, liveReq]);
   const dayMatches = results.slice(TSDB_SEASONS.length, TSDB_SEASONS.length + days.length).flat();
-  const roundMatches = results.slice(TSDB_SEASONS.length + days.length).flat();
   if (dayMatches.length > 0) {
     console.log(`[sync] day endpoint → ${dayMatches.length} WC events (${days.length} jours)`);
-  }
-  if (roundMatches.length > 0) {
-    console.log(`[sync] round endpoint → ${roundMatches.length} events (rounds ${rounds.join(',')})`);
   }
 
   const merged = new Map();
@@ -218,6 +210,11 @@ async function syncScoresOnce() {
   if (unmatched.length > 0 && unmatched.length <= 20) {
     console.log('[sync] unmatched events :', unmatched);
   }
+  // Expose la dernière sync pour l'indicateur du header
+  window.__wc26_last_sync = Date.now();
+  window.dispatchEvent(new CustomEvent('wc26:sync-attempt', {
+    detail: { updated, matched, total: apiEvents.length },
+  }));
   if (updated > 0) {
     window.dispatchEvent(new CustomEvent('wc26:scores-synced', { detail: { updated } }));
   }
