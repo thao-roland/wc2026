@@ -155,6 +155,7 @@
       { home: 'Netherlands', away: 'Sweden' },
       { home: 'Spain', away: 'Saudi Arabia' },
       { home: 'Uruguay', away: 'Cape Verde' },
+      { home: 'France', away: 'Iraq' },
     ];
     const manualEnabled = MANUAL_SCORE.some(
       (e) => (e.home === m.team_home && e.away === m.team_away)
