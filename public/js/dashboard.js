@@ -159,6 +159,8 @@
       { home: 'Portugal', away: 'Uzbekistan' },
       { home: 'Panama', away: 'Croatia' },
       { home: 'Colombia', away: 'DR Congo' },
+      { home: 'Bosnia-Herzegovina', away: 'Qatar' },
+      { home: 'Czechia', away: 'Mexico' },
     ];
     const manualEnabled = MANUAL_SCORE.some(
       (e) => (e.home === m.team_home && e.away === m.team_away)
