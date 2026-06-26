@@ -142,6 +142,10 @@
 
     // Liste des matchs où on autorise la saisie manuelle du score.
     // S'enrichit à la demande du user (cf. renderManualScoreEditor).
+    // Liste des matchs où on garde la saisie manuelle même quand le match
+    // est récent. Pour les autres, on tombe en mode 'auto' : le bouton
+    // apparaît dès que le match a commencé depuis > 2h sans être marqué
+    // 'finished' (TheSportsDB free a souvent du retard).
     const MANUAL_SCORE = [
       { home: 'Iraq', away: 'Norway' },
       { home: 'Portugal', away: 'DR Congo' },
@@ -165,10 +169,13 @@
       { home: 'Japan', away: 'Sweden' },
       { home: 'Türkiye', away: 'USA' },
     ];
-    const manualEnabled = MANUAL_SCORE.some(
+    const onWhitelist = MANUAL_SCORE.some(
       (e) => (e.home === m.team_home && e.away === m.team_away)
           || (e.home === m.team_away && e.away === m.team_home),
     );
+    // Fallback auto : tout match commencé depuis > 2h et pas marqué fini.
+    const stale = kickoff && Date.now() >= kickoff + 2 * 60 * 60 * 1000;
+    const manualEnabled = onWhitelist || stale;
     if (locked && m.status !== 'finished' && manualEnabled) {
       left.append(renderManualScoreEditor(m, load));
     }
