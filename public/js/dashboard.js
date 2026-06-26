@@ -173,8 +173,12 @@
       (e) => (e.home === m.team_home && e.away === m.team_away)
           || (e.home === m.team_away && e.away === m.team_home),
     );
-    // Fallback auto : tout match commencé depuis > 2h et pas marqué fini.
-    const stale = kickoff && Date.now() >= kickoff + 2 * 60 * 60 * 1000;
+    // Fallback auto : tout match marqué 'live' OU commencé depuis plus
+    // d'1h30 (= fin de temps réglementaire) sans être marqué fini.
+    // On reste large pour qu'un match qu'on voit en LIVE depuis 30 min
+    // ait quand même le bouton, même si la date stockée est foireuse.
+    const stale = m.status === 'live'
+      || (kickoff && Date.now() >= kickoff + 90 * 60 * 1000);
     const manualEnabled = onWhitelist || stale;
     if (locked && m.status !== 'finished' && manualEnabled) {
       left.append(renderManualScoreEditor(m, load));

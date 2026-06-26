@@ -186,6 +186,11 @@ async function syncScoresOnce() {
     }
     matched++;
 
+    // Ne JAMAIS écraser un match déjà marqué 'finished'. Sinon une saisie
+    // manuelle se fait recoller en 'live' par le sync 60s plus tard
+    // parce que TheSportsDB n'a pas encore poussé le résultat final.
+    if (match.status === 'finished') continue;
+
     // Si TheSportsDB a inversé home/away, on inverse les scores aussi.
     const rawH = (ev.intHomeScore === null || ev.intHomeScore === '' || ev.intHomeScore === undefined)
       ? null : Number(ev.intHomeScore);
