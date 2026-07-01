@@ -26,7 +26,7 @@
   card.append(WC.el('h2', { class: 'section' },
     WC.el('span', {}, 'Pronos longs du tournoi'),
     WC.el('span', { class: 'picks-bonus muted', style: 'font-size:10px;letter-spacing:0.08em;margin-left:auto' },
-      'Bonus : +15 / +10 / +10'),
+      'Bonus : +7 / +5 / +5'),
   ));
 
   if (locked && !picks.user_id) {

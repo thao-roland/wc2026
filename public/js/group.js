@@ -151,7 +151,7 @@
     }
 
     card.append(WC.el('p', { class: 'muted', style: 'font-size:11px;margin:14px 0 0' },
-      'Barème : vainqueur +15 pts · meilleur buteur +10 pts · meilleur passeur +10 pts. Verrouillés au coup d\'envoi du tournoi.'));
+      'Barème : vainqueur +7 pts · meilleur buteur +5 pts · meilleur passeur +5 pts. Verrouillés au coup d\'envoi du tournoi.'));
 
     return card;
   }
